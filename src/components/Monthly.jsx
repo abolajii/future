@@ -165,11 +165,6 @@ const Monthly = ({ formatAmount }) => {
   const [trading] = useState(new TradingSchedule(user.monthly_capital)); // You'll need to import your Trading class
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const generateWeeklyData = () => {
-    const newWeeklyData = trading.generateYearlyData();
-    setTradingData(newWeeklyData);
-  };
-
   const fetchDeposits = async () => {
     try {
       const response = await getAllDeposits();
@@ -183,11 +178,20 @@ const Monthly = ({ formatAmount }) => {
     fetchDeposits();
   }, []);
 
-  console.log(deposits);
+  const generateWeeklyData = () => {
+    const formattedDeposits = deposits.map((d) => ({
+      dateOfDeposit: d.date.split("T")[0],
+      amount: d.amount,
+      depositBonus: d.bonus,
+      whenDepositHappened: d.whenDeposited,
+    }));
+    const newWeeklyData = trading.generateYearlyData(formattedDeposits);
+    setTradingData(newWeeklyData);
+  };
 
   useEffect(() => {
     generateWeeklyData();
-  }, []);
+  }, [deposits]);
 
   const groupedByMonth = tradingData.reduce((acc, item) => {
     if (!acc[item.month]) acc[item.month] = [];

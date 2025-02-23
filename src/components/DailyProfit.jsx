@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { TradingSchedule } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
+import { getAllDeposits } from "../api/request";
 
 const TableWrapper = styled.div`
   overflow-x: auto;
@@ -89,6 +90,20 @@ const DailyProfit = ({ formatAmount }) => {
   const [startingCapital, setStartingCapital] = useState(user.weekly_capital);
   const [weeklyData, setWeeklyData] = useState([]);
   const [lastWeekEndDate, setLastWeekEndDate] = useState(null);
+  const [deposits, setDeposits] = useState([]);
+
+  const fetchDeposits = async () => {
+    try {
+      const response = await getAllDeposits();
+      setDeposits(response.deposits);
+    } catch (error) {
+      console.error("Error fetching deposits:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeposits();
+  }, []);
 
   const generateWeeklyData = () => {
     const trading = new TradingSchedule(); // You'll need to import your Trading class
@@ -100,8 +115,15 @@ const DailyProfit = ({ formatAmount }) => {
     //   whenDepositHappened: "inbetween-trade",
     // };
 
+    const formattedDeposits = deposits.map((d) => ({
+      dateOfDeposit: d.date.split("T")[0],
+      amount: d.amount,
+      depositBonus: d.bonus,
+      whenDepositHappened: d.whenDeposited,
+    }));
+
     const newWeeklyData = trading.generateWeeklyDetails(
-      [],
+      formattedDeposits,
       startingCapital,
       lastWeekEndDate
     );
@@ -110,7 +132,7 @@ const DailyProfit = ({ formatAmount }) => {
 
   useEffect(() => {
     generateWeeklyData();
-  }, []);
+  }, [deposits]);
 
   return (
     <Container>

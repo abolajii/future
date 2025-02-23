@@ -103,7 +103,7 @@ export class TradingSchedule {
     this.processedDates = new Set();
   }
 
-  generateYearlyData() {
+  generateYearlyData(deposits = []) {
     const currentDate = new Date("2025-02-23");
     let runningCapital = this.initialCapital;
     const currentYear = currentDate.getFullYear();
@@ -122,7 +122,19 @@ export class TradingSchedule {
 
       for (let day = startDay; day <= daysInMonth; day++) {
         const date = new Date(currentYear, monthIndex, day);
-        const dateString = date.toISOString().split("T")[0];
+        const dateString = new Date(
+          currentYear,
+          monthIndex,
+          day
+        ).toLocaleDateString("en-CA");
+        const depositInfo = deposits.find(
+          (d) => d?.dateOfDeposit === dateString
+        );
+
+        if (depositInfo && depositInfo.whenDepositHappened === "before-trade") {
+          runningCapital +=
+            depositInfo.amount + (depositInfo.depositBonus || 0);
+        }
 
         if (this.processedDates.has(dateString)) continue;
 
@@ -133,7 +145,37 @@ export class TradingSchedule {
         const formattedDate = `${weekday} ${day}${daySuffix}`;
 
         const { firstSignalPassed, secondSignalPassed } = this.checkTime(date);
-        const profits = calculateDayProfits(runningCapital);
+        // const profits = calculateDayProfits(runningCapital);
+
+        let dayProfits;
+        if (depositInfo) {
+          // Only pass deposit info to calculateDayProfits for "in-between" and "completed" cases
+          if (depositInfo.whenDepositHappened !== "before-trade") {
+            dayProfits = calculateDayProfits(
+              runningCapital,
+              {
+                depositedAmount: depositInfo.amount,
+                depositBonus: depositInfo.depositBonus || 0,
+              },
+              depositInfo.whenDepositHappened
+            );
+          } else {
+            // For "before-trade" deposits, we've already added it to runningCapital
+            dayProfits = calculateDayProfits(runningCapital);
+          }
+        } else {
+          dayProfits = calculateDayProfits(runningCapital);
+        }
+
+        let adjustedTotalProfit = dayProfits.totalProfit;
+        if (depositInfo) {
+          // Don't subtract deposit amount from total profit for "before-trade" deposits
+          // as it's already handled in calculateDayProfits
+          if (depositInfo.whenDepositHappened !== "before-trade") {
+            adjustedTotalProfit =
+              dayProfits.finalBalance - runningCapital - depositInfo.amount;
+          }
+        }
 
         const tradeData = {
           month,
@@ -141,21 +183,22 @@ export class TradingSchedule {
           date: formattedDate,
           fullDate: dateString,
           balanceBeforeTrade: runningCapital,
-          signal1Capital: profits.signal1Capital,
-          signal1Profit: profits.signal1Profit,
-          signal2Capital: profits.signal2Capital,
-          signal2Profit: profits.signal2Profit,
-          totalProfit: profits.totalProfit,
-          balanceAfterTrade: profits.finalBalance,
+          signal1Capital: dayProfits.signal1Capital,
+          signal1Profit: dayProfits.signal1Profit,
+          signal2Capital: dayProfits.signal2Capital,
+          signal2Profit: dayProfits.signal2Profit,
+          totalProfit: adjustedTotalProfit,
+          balanceAfterTrade: dayProfits.finalBalance,
           firstSignalPassed,
           secondSignalPassed,
           scheduledWithdraw: false,
           withdrawalAmount: 0,
           withdrawalTime: null,
+          depositInfo,
         };
 
         this.yearlyData.push(tradeData);
-        runningCapital = profits.finalBalance;
+        runningCapital = dayProfits.finalBalance;
       }
     }
 

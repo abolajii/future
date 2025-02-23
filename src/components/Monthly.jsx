@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { TradingSchedule } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
 import WithdrawModal from "./WithdrawModal";
+import { getAllDeposits } from "../api/request";
 
 const Container = styled.div`
   display: flex;
@@ -160,7 +161,7 @@ const Monthly = ({ formatAmount }) => {
   const [tradingData, setTradingData] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const { user } = useAuthStore();
-
+  const [deposits, setDeposits] = useState([]);
   const [trading] = useState(new TradingSchedule(user.monthly_capital)); // You'll need to import your Trading class
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -168,6 +169,21 @@ const Monthly = ({ formatAmount }) => {
     const newWeeklyData = trading.generateYearlyData();
     setTradingData(newWeeklyData);
   };
+
+  const fetchDeposits = async () => {
+    try {
+      const response = await getAllDeposits();
+      setDeposits(response.deposits);
+    } catch (error) {
+      console.error("Error fetching deposits:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeposits();
+  }, []);
+
+  console.log(deposits);
 
   useEffect(() => {
     generateWeeklyData();

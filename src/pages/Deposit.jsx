@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { getAllDeposits } from "../api/request";
+import { deleteDeposit, getAllDeposits } from "../api/request";
 import useAuthStore from "../store/authStore";
 import { format } from "date-fns";
 import { formatValue } from "../utils/tradingUtils";
+import Modal from "../components/Modal";
+import DepositForm from "../components/DepositForm";
+import DeleteModal from "../components/DeleteModal";
 
 const PageTitle = styled.h1`
   font-size: 1.5rem;
@@ -203,6 +206,9 @@ const Deposit = () => {
   const [currency, setCurrency] = useState("USD");
   const [deposits, setDeposits] = useState([]);
   const { setUser, user } = useAuthStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedDeposit, setSelectedDeposit] = useState(null);
 
   const fetchDeposits = async () => {
     try {
@@ -218,16 +224,53 @@ const Deposit = () => {
   }, []);
 
   const handleCreateDeposit = () => {
-    console.log("Create deposit clicked");
+    setIsModalOpen(true);
   };
 
-  const handleDelete = (depositId) => {
-    console.log("Delete deposit:", depositId);
+  const handleDelete = (deposit) => {
+    console.log("Delete deposit:", deposit);
+    setDeleteModalOpen(true);
+    setSelectedDeposit(deposit);
   };
 
   return (
     <div>
       {/* <PageTitle>Deposits</PageTitle> */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}
+        f
+      >
+        <DepositForm fetchDeposits={fetchDeposits} />
+      </Modal>
+
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+        }}
+        onConfirm={async () => {
+          try {
+            const response = await deleteDeposit(selectedDeposit._id);
+            console.log(response);
+
+            const clonedDeposits = [...deposits];
+            const index = clonedDeposits.findIndex(
+              (d) => d._id === selectedDeposit._id
+            );
+            setDeleteModalOpen(false);
+            clonedDeposits.splice(index, 1);
+            setDeposits(clonedDeposits);
+
+            const startingCapital = response.data.startingCapital;
+            const updatedUser = { ...user, startingCapital };
+            setUser(updatedUser);
+          } catch (error) {}
+        }}
+        itemName={selectedDeposit?.amount}
+      />
       <Header>
         <FilterSection>
           <DateInputGroup>
@@ -291,7 +334,7 @@ const Deposit = () => {
                     </Status>
                   </Td>
                   <Td>
-                    <Action onClick={() => handleDelete(deposit._id)}>
+                    <Action onClick={() => handleDelete(deposit)}>
                       Delete
                     </Action>
                   </Td>

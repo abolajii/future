@@ -329,7 +329,6 @@ export class TradingSchedule {
 
       const dateString = currentDate.toISOString().split("T")[0];
       const depositInfo = deposits.find((d) => d?.dateOfDeposit === dateString);
-      console.log(depositInfo);
 
       // Apply deposit before calculating profits if deposit time is "before-trade"
       if (depositInfo && depositInfo.whenDepositHappened === "before-trade") {

@@ -219,16 +219,6 @@ const DetailLabel = styled.div`
   margin-bottom: 0.25rem;
 `;
 
-// const DetailValue = styled.p`
-//   font-weight: bold;
-//   margin: 0;
-//   font-size: 0.875rem;
-
-//   @media (min-width: 768px) {
-//     font-size: 1rem;
-//   }
-// `;
-
 const SignalDetails = styled.div`
   display: flex;
   gap: 1rem;
@@ -338,19 +328,14 @@ const WeeklyDetails = () => {
   }, []);
 
   const generateWeeklyData = () => {
-    // const deposit = {
-    //   amount: 1000,
-    //   dateOfDeposit: "2025-02-23",
-    //   whenDepositHappened: "inbetween-trade",
-    //   depositBonus: 0,
-    // };
-
     const formattedDeposits = deposits.map((d) => ({
-      dateOfDeposit: d.date.split("T")[0],
+      dateOfDeposit: d.date,
       amount: d.amount,
       depositBonus: d.bonus,
       whenDepositHappened: d.whenDeposited,
     }));
+
+    console.log(formattedDeposits);
 
     const newWeeklyData = trading.generateWeeklyDetails(
       formattedDeposits,

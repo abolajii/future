@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import styled from "styled-components";
 import Signals from "./Signals";
 import Notify from "./Notify";
@@ -36,64 +35,102 @@ const Container = styled.div`
 `;
 
 const NotificationBadge = styled.div`
-  /* background: #ff0000; */
   color: #ff0000;
   border-radius: 50px;
   font-size: 13px;
   font-weight: bold;
-  /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
-  /* display: inline-block; */
-  /* height: 20px; */
-  /* width: 20px; */
+  margin-left: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
 `;
 
 const Notification = () => {
-  const [isThirtyMinsAway, setIsThirtyMinsAway] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [signals, setSignals] = useState([
+    {
+      id: 1,
+      title: "Signal 1",
+      time: "14:00 - 14:30",
+      status: "not-started",
+      startHour: 14,
+      startMinute: 0,
+      endHour: 14,
+      endMinute: 30,
+      traded: false,
+      capitalUpdated: false,
+    },
+    {
+      id: 2,
+      title: "Signal 2",
+      time: "19:00 - 19:30",
+      status: "not-started",
+      startHour: 19,
+      startMinute: 0,
+      endHour: 19,
+      endMinute: 30,
+      traded: false,
+      capitalUpdated: false,
+    },
+  ]);
 
-  const signalTime = [
-    { id: 1, message: "Signal 1", time: "14:00-14:30" },
-    { id: 2, message: "Signal 2", time: "19:00-19:30" },
-  ];
-
-  const checkIfThirtyMinsAway = () => {
+  const checkUpcomingSignals = () => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinute;
 
-    return signalTime.some((signal) => {
-      const [startHour, startMinute] = signal.time
-        .split("-")[0]
-        .split(":")
-        .map(Number);
-      const signalStartTime = startHour * 60 + startMinute;
-      return currentTime === signalStartTime - 30; // Exactly 30 mins before the signal starts
+    let count = 0;
+    const updatedSignals = signals.map((signal) => {
+      const signalStartTime = signal.startHour * 60 + signal.startMinute;
+      const timeDiff = signalStartTime - currentTime;
+
+      // Check if signal is exactly 30 minutes away
+      if (timeDiff > 0 && timeDiff <= 30 && signal.status === "not-started") {
+        count++;
+        return { ...signal, hasNotification: true };
+      }
+
+      // Update signal status based on current time
+      let status = signal.status;
+      if (
+        currentTime >= signalStartTime &&
+        currentTime < signal.endHour * 60 + signal.endMinute
+      ) {
+        status = "in-progress";
+      } else if (currentTime >= signal.endHour * 60 + signal.endMinute) {
+        status = "completed";
+      }
+
+      return { ...signal, status, hasNotification: false };
     });
+
+    setNotificationCount(count);
+    setSignals(updatedSignals);
   };
 
   useEffect(() => {
-    setIsThirtyMinsAway(checkIfThirtyMinsAway());
+    checkUpcomingSignals();
 
     const interval = setInterval(() => {
-      setIsThirtyMinsAway(checkIfThirtyMinsAway());
+      checkUpcomingSignals();
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
   }, []);
+
   return (
     <Container>
       <div className="header">
         <p>All Notification</p>
-        {isThirtyMinsAway && <NotificationBadge>1</NotificationBadge>}
+        {notificationCount > 0 && (
+          <NotificationBadge>{notificationCount}</NotificationBadge>
+        )}
       </div>
       <Notify />
 
       <div className="body">
-        {/* <h3>Signal</h3> */}
-        <Signals />
+        <Signals signals={signals} setSignals={setSignals} />
       </div>
     </Container>
   );

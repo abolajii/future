@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import useAuthStore from "../store/authStore";
 import { getSignalForTheDay } from "../api/request";
@@ -10,6 +9,7 @@ const WidgetGrid = styled.div`
   gap: 1.5rem;
   margin: 10px 0;
 `;
+
 const Card = styled.div`
   background: #25262b;
   border-radius: 12px;
@@ -18,12 +18,15 @@ const Card = styled.div`
   overflow: hidden;
   border-left: 5px solid ${(props) => getStatusColor(props.status)};
   padding: 1rem 1rem;
+  position: relative;
 `;
+
 const CardHeader = styled.div`
   font-size: 1rem;
   font-weight: 600;
   color: #f9fafb;
 `;
+
 const CardContent = styled.div`
   font-size: 0.95rem;
   display: flex;
@@ -31,9 +34,66 @@ const CardContent = styled.div`
   align-items: center;
   margin: 3px 0;
 `;
+
 const Time = styled.span`
   font-size: 0.875rem;
   color: #9ca3af;
+`;
+
+const StatusBadge = styled.span`
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: ${(props) => {
+    switch (props.status) {
+      case "not-started":
+        return "#343a40";
+      case "in-progress":
+        return "#ffec99";
+      case "completed":
+        return "#d3f9d8";
+      default:
+        return "#343a40";
+    }
+  }};
+  color: ${(props) => {
+    switch (props.status) {
+      case "not-started":
+        return "#9ca3af";
+      case "in-progress":
+        return "#f59f00";
+      case "completed":
+        return "#2b8a3e";
+      default:
+        return "#9ca3af";
+    }
+  }};
+`;
+
+const NotificationDot = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff0000;
+  animation: pulse 2s infinite;
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px rgba(255, 0, 0, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+    }
+  }
 `;
 
 const getStatusColor = (status) => {
@@ -49,50 +109,55 @@ const getStatusColor = (status) => {
   }
 };
 
-const Signals = () => {
-  const [signals, setSignals] = useState([
-    {
-      title: "Signal 1",
-      time: "14:00 - 14:30",
-      status: "not-started",
-      startHour: 14,
-      endHour: 14,
-      endMinute: 30,
-      traded: false,
-      capitalUpdated: false, // New flag to track if capital was updated early
-    },
-    {
-      title: "Signal 2",
-      time: "19:00 - 19:30",
-      status: "not-started",
-      startHour: 19,
-      endHour: 19,
-      endMinute: 30,
-      traded: false,
-      capitalUpdated: false,
-    },
-  ]);
-
-  // const [signals, setSignals] = useState([]);
+const Signals = ({ signals: propSignals, setSignals: propSetSignals }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuthStore();
+  const [signals, setSignals] = useState([]);
+
+  useEffect(() => {
+    if (propSignals) {
+      // Use signals passed from parent if available
+      setSignals(propSignals);
+      setLoading(false);
+    } else {
+      // Otherwise fetch signals from the API
+      fetchSignals();
+    }
+  }, [propSignals]);
 
   const fetchSignals = async () => {
     try {
       setLoading(true);
       const response = await getSignalForTheDay();
-      const formattedSignals = response.signals.map((signal) => {
-        // Parse the datetime string properly
-        const [datePart, startTime, , endTime] = signal.time.split(" ");
-        return {
-          ...signal,
-          id: signal._id,
-          time: `${startTime} - ${endTime}`,
-          originalDate: datePart,
-        };
-      });
-      setSignals(formattedSignals);
+      if (response && response.signals) {
+        const formattedSignals = response.signals.map((signal) => {
+          // Parse the datetime string properly
+          const [datePart, startTime, , endTime] = signal.time.split(" ");
+          const [startHour, startMinute] = startTime.split(":").map(Number);
+          const [endHour, endMinute] = endTime.split(":").map(Number);
+
+          return {
+            ...signal,
+            id: signal._id,
+            title: signal.title || `Signal ${signal.id}`,
+            time: `${startTime} - ${endTime}`,
+            originalDate: datePart,
+            startHour,
+            startMinute,
+            endHour,
+            endMinute,
+            status: signal.status || "not-started",
+            traded: signal.traded || false,
+            capitalUpdated: signal.capitalUpdated || false,
+            hasNotification: false,
+          };
+        });
+        setSignals(formattedSignals);
+        if (propSetSignals) {
+          propSetSignals(formattedSignals);
+        }
+      }
     } catch (err) {
       setError("Failed to fetch signals");
       console.error(err);
@@ -101,21 +166,35 @@ const Signals = () => {
     }
   };
 
-  React.useEffect(() => {
-    fetchSignals();
-  }, []);
+  if (loading) {
+    return <div style={{ color: "#f9fafb" }}>Loading signals...</div>;
+  }
+
+  if (error) {
+    return <div style={{ color: "#f9fafb" }}>{error}</div>;
+  }
+
   return (
     <div>
       <WidgetGrid>
-        {signals.map((signal) => (
-          <Card key={signal.title} status={signal.status}>
-            <CardContent>
-              <CardHeader>{signal.title}</CardHeader>
-              <span>{signal.status}</span>
-            </CardContent>
-            <Time>{signal.time}</Time>
-          </Card>
-        ))}
+        {signals.length > 0 ? (
+          signals.map((signal) => (
+            <Card key={signal.id || signal.title} status={signal.status}>
+              {signal.hasNotification && <NotificationDot />}
+              <CardContent>
+                <CardHeader>{signal.title}</CardHeader>
+                <StatusBadge status={signal.status}>
+                  {signal.status.replace("-", " ")}
+                </StatusBadge>
+              </CardContent>
+              <Time>{signal.time}</Time>
+            </Card>
+          ))
+        ) : (
+          <div style={{ color: "#f9fafb", gridColumn: "1 / -1" }}>
+            No signals available for today
+          </div>
+        )}
       </WidgetGrid>
     </div>
   );

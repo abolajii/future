@@ -302,8 +302,8 @@ export class TradingSchedule {
   checkTime(date) {
     const now = new Date();
     const signalTimes = {
-      firstSignalTime: 15,
-      secondSignalTime: 20,
+      firstSignalTime: 14,
+      secondSignalTime: 19,
     };
 
     const today = new Date();

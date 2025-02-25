@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Volume1 } from "lucide-react";
 import styled, { keyframes } from "styled-components";
-// import useAuthStore from "../store/authStore";
+import useAuthStore from "../store/authStore";
+import { calculateDayProfits } from "../utils/tradingUtils";
 
 const slideOutUp = keyframes`
   from {
@@ -69,7 +70,10 @@ const Notify = ({ signals }) => {
   const [upcomingSignals, setUpcomingSignals] = useState([]);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
-  // const { user } = useAuthStore();
+  const { user } = useAuthStore();
+
+  // Get profit calculations from user data
+  const profitData = calculateDayProfits(user.running_capital);
 
   const checkUpcomingSignals = () => {
     if (!signals || signals.length === 0) return [];
@@ -109,7 +113,17 @@ const Notify = ({ signals }) => {
 
     // Use the first upcoming signal for notifications
     const signal = upcomingSignals[0];
-    const estimatedValue = Math.floor(Math.random() * 50) + 20; // Random value between 20-70 for example
+
+    // Determine which signal it is and use the corresponding profit value
+    let estimatedValue;
+    if (signal.title === "Signal 1" || signal.id === 1) {
+      estimatedValue = profitData.signal1Profit.toFixed(2);
+    } else if (signal.title === "Signal 2" || signal.id === 2) {
+      estimatedValue = profitData.signal2Profit.toFixed(2);
+    } else {
+      // Fallback if signal ID doesn't match expected values
+      estimatedValue = Math.floor(Math.random() * 4) + 1;
+    }
 
     return [
       {

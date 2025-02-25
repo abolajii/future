@@ -127,7 +127,7 @@ const Notification = () => {
           <NotificationBadge>{notificationCount}</NotificationBadge>
         )}
       </div>
-      <Notify />
+      <Notify signals={signals} />
 
       <div className="body">
         <Signals signals={signals} setSignals={setSignals} />

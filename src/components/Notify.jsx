@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Volume1 } from "lucide-react";
-import styled, { keyframes, css } from "styled-components";
+import styled, { keyframes } from "styled-components";
 // import useAuthStore from "../store/authStore";
 
 const slideOutUp = keyframes`
@@ -53,54 +53,78 @@ const NotificationWrapper = styled.div`
 
 const Information = styled.div`
   font-size: 0.9rem;
+  color: #f9fafb;
 `;
 
-const Notify = ({ profit }) => {
+const EmptyNotification = styled.div`
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin: 10px 0;
+`;
+
+const Notify = ({ signals }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [isThirtyMinsAway, setIsThirtyMinsAway] = useState(false);
+  const [upcomingSignals, setUpcomingSignals] = useState([]);
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
   // const { user } = useAuthStore();
 
-  const signalTime = [
-    { id: 1, message: "Signal 1", time: "14:00-14:30" },
-    { id: 2, message: "Signal 2", time: "19:00-19:30" },
-  ];
+  const checkUpcomingSignals = () => {
+    if (!signals || signals.length === 0) return [];
 
-  const checkIfThirtyMinsAway = () => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinute;
 
-    return signalTime.some((signal) => {
-      const [startHour, startMinute] = signal.time
-        .split("-")[0]
-        .split(":")
-        .map(Number);
-      const signalStartTime = startHour * 60 + startMinute;
-      return currentTime === signalStartTime - 30; // Exactly 30 mins before the signal starts
+    return signals.filter((signal) => {
+      const signalStartTime = signal.startHour * 60 + (signal.startMinute || 0);
+      const timeDiff = signalStartTime - currentTime;
+      // Signal is between 25 and 35 minutes away (to give some flexibility)
+      return timeDiff > 0 && timeDiff <= 35 && signal.status === "not-started";
     });
   };
 
   useEffect(() => {
-    setIsThirtyMinsAway(checkIfThirtyMinsAway());
+    const updateUpcomingSignals = () => {
+      const upcoming = checkUpcomingSignals();
+      setUpcomingSignals(upcoming);
+    };
 
+    // Initial check
+    updateUpcomingSignals();
+
+    // Set up interval to check every minute
     const interval = setInterval(() => {
-      setIsThirtyMinsAway(checkIfThirtyMinsAway());
-    }, 60000); // Check every minute
+      updateUpcomingSignals();
+    }, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [signals]);
 
-  const lastMessage = `If you miss this, you lost $${30}`;
-  const notifications = [
-    { id: 1, info: "Be ready to trade! 📈" },
-    { id: 2, info: "30 mins to next signal! ⏰" },
-    { id: 3, info: lastMessage },
-  ];
+  const generateNotifications = () => {
+    if (upcomingSignals.length === 0) return [];
+
+    // Use the first upcoming signal for notifications
+    const signal = upcomingSignals[0];
+    const estimatedValue = Math.floor(Math.random() * 50) + 20; // Random value between 20-70 for example
+
+    return [
+      {
+        id: 1,
+        info: `Be ready to trade ${signal.title || "upcoming"}! 📈`,
+      },
+      { id: 2, info: `${signal.time} signal starting soon! ⏰` },
+      {
+        id: 3,
+        info: `If you miss this signal, you could lose $${estimatedValue}!`,
+      },
+    ];
+  };
+
+  const notifications = generateNotifications();
 
   const handleMouseEnter = () => {
     setIsPaused(true);
@@ -114,6 +138,8 @@ const Notify = ({ profit }) => {
   };
 
   const startInterval = () => {
+    if (notifications.length === 0) return;
+
     intervalRef.current = setInterval(() => {
       setIsAnimating(true);
       timeoutRef.current = setTimeout(() => {
@@ -124,19 +150,26 @@ const Notify = ({ profit }) => {
   };
 
   useEffect(() => {
-    startInterval();
+    if (notifications.length > 0) {
+      startInterval();
+    }
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [notifications.length]);
+
+  if (upcomingSignals.length === 0) {
+    return null; // Don't show anything if no upcoming signals
+  }
 
   return (
-    isThirtyMinsAway && (
-      <NotificationContainer>
-        <IconContainer>
-          <Volume1 size={20} />
-        </IconContainer>
+    <NotificationContainer>
+      <IconContainer>
+        <Volume1 size={20} />
+      </IconContainer>
+      {notifications.length > 0 ? (
         <NotificationWrapper
           isAnimating={isAnimating}
           onMouseEnter={handleMouseEnter}
@@ -146,8 +179,10 @@ const Notify = ({ profit }) => {
             <Information>{notifications[currentIndex].info}</Information>
           </div>
         </NotificationWrapper>
-      </NotificationContainer>
-    )
+      ) : (
+        <EmptyNotification>No upcoming signals at this time</EmptyNotification>
+      )}
+    </NotificationContainer>
   );
 };
 

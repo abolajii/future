@@ -440,6 +440,111 @@ export class TradingSchedule {
 
     return weeklyDetails;
   }
+
+  generateSevenDaysDetails(
+    startingCapital = 0,
+    lastWeekEndDate = null,
+    deposits = []
+  ) {
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    // Calculate the start date (Sunday) for the next week
+    const MS_IN_A_DAY = 24 * 60 * 60 * 1000;
+    const lastWeekDate = new Date(lastWeekEndDate);
+
+    // Get the next Sunday
+    const sundayDate = new Date(lastWeekDate.getTime() + MS_IN_A_DAY);
+    while (sundayDate.getDay() !== 0) {
+      sundayDate.setTime(sundayDate.getTime() + MS_IN_A_DAY);
+    }
+    sundayDate.setUTCHours(0, 0, 0, 0);
+
+    let runningCapital = startingCapital;
+    const weeklyDetails = [];
+
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(sundayDate);
+      currentDate.setDate(sundayDate.getDate() + i);
+      currentDate.setUTCHours(0, 0, 0, 0);
+
+      const dateString = currentDate.toISOString().split("T")[0];
+      const depositInfo = deposits.find((d) => d?.dateOfDeposit === dateString);
+
+      // Apply deposit before calculating profits if deposit time is "before-trade"
+      if (depositInfo && depositInfo.whenDepositHappened === "before-trade") {
+        runningCapital += depositInfo.amount + (depositInfo.depositBonus || 0);
+      }
+
+      const { firstSignalPassed, secondSignalPassed } =
+        this.checkTime(currentDate);
+
+      let dayProfits;
+      if (depositInfo) {
+        // Only pass deposit info to calculateDayProfits for "in-between" and "completed" cases
+        if (depositInfo.whenDepositHappened !== "before-trade") {
+          dayProfits = calculateDayProfits(
+            runningCapital,
+            {
+              depositedAmount: depositInfo.amount,
+              depositBonus: depositInfo.depositBonus || 0,
+            },
+            depositInfo.whenDepositHappened
+          );
+        } else {
+          // For "before-trade" deposits, we've already added it to runningCapital
+          dayProfits = calculateDayProfits(runningCapital);
+        }
+      } else {
+        dayProfits = calculateDayProfits(runningCapital);
+      }
+
+      const formattedDate = `${
+        daysOfWeek[currentDate.getDay()]
+      } ${currentDate.getDate()}${this.getDaySuffix(currentDate.getDate())}`;
+
+      // Calculate total profit correctly based on deposit timing
+      let adjustedTotalProfit = dayProfits.totalProfit;
+      if (depositInfo) {
+        // Don't subtract deposit amount from total profit for "before-trade" deposits
+        // as it's already handled in calculateDayProfits
+        if (depositInfo.whenDepositHappened !== "before-trade") {
+          adjustedTotalProfit =
+            dayProfits.finalBalance - runningCapital - depositInfo.amount;
+        }
+      }
+
+      weeklyDetails.push({
+        date: formattedDate,
+        startingCapital: runningCapital,
+        fullDate: dateString,
+        balanceBeforeFirstTrade: dayProfits.startingCapital,
+        signal1Capital: dayProfits.signal1Capital,
+        signal2Capital: dayProfits.signal2Capital,
+        signal1Profit: dayProfits.signal1Profit,
+        signal2Profit: dayProfits.signal2Profit,
+        totalProfit: adjustedTotalProfit,
+        balanceAfterSecondTrade: dayProfits.finalBalance,
+        firstSignalPassed,
+        secondSignalPassed,
+        scheduledWithdraw: false,
+        withdrawalAmount: 0,
+        withdrawalTime: null,
+        depositInfo,
+      });
+
+      runningCapital = dayProfits.finalBalance;
+    }
+
+    return weeklyDetails;
+  }
 }
 
 export const formatValue = (value = 0, currency, nairaRate = 1600) => {

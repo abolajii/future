@@ -68,3 +68,11 @@ export const getRevenue = async () => {
     throw error.response.data;
   }
 };
+export const getExpenses = async () => {
+  try {
+    const response = await authSignal.get("/withdraw");
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};

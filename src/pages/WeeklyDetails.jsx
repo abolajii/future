@@ -18,7 +18,7 @@ const WeeklyDetails = () => {
 
   return (
     <Container>
-      <button
+      {/* <button
         disabled={weekOffset === 0}
         onClick={() => setWeekOffset((prev) => prev - 1)}
       >
@@ -30,7 +30,7 @@ const WeeklyDetails = () => {
         }}
       >
         Next week
-      </button>
+      </button> */}
 
       {weekOffset === 0 && (
         <FirstWeek weeklyData={weeklyData} setWeeklyData={setWeeklyData} />

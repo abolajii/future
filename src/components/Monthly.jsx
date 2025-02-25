@@ -135,8 +135,14 @@ const Th = styled.th`
 
 const Td = styled.td`
   padding: 1rem;
-  border-bottom: 1px solid #ff980020;
+  /* border-bottom: 1px solid #ff980020; */
   color: #ffffff;
+
+  ${(props) =>
+    props.withdraw &&
+    `
+    background-color: #cfc6b91f;
+  `}
 `;
 
 const ProfitCell = styled(Td)`

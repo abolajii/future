@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import useAuthStore from "../store/authStore";
 import { getSignalForTheDay } from "../api/request";
 
 const WidgetGrid = styled.div`
@@ -74,11 +73,11 @@ const NotificationDot = styled.div`
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background-color: #ff0000;
-  animation: pulse 2s infinite;
+  animation: pulse 1.5s infinite;
 
   @keyframes pulse {
     0% {
@@ -112,7 +111,6 @@ const getStatusColor = (status) => {
 const Signals = ({ signals: propSignals, setSignals: propSetSignals }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user } = useAuthStore();
   const [signals, setSignals] = useState([]);
 
   useEffect(() => {
@@ -130,6 +128,7 @@ const Signals = ({ signals: propSignals, setSignals: propSetSignals }) => {
     try {
       setLoading(true);
       const response = await getSignalForTheDay();
+      console.log("running");
       if (response && response.signals) {
         const formattedSignals = response.signals.map((signal) => {
           // Parse the datetime string properly

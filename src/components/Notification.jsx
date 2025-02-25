@@ -128,7 +128,6 @@ const Notification = () => {
         )}
       </div>
       <Notify signals={signals} />
-
       <div className="body">
         <Signals signals={signals} setSignals={setSignals} />
       </div>

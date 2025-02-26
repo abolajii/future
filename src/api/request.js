@@ -50,6 +50,15 @@ export const deleteDeposit = async (id) => {
   }
 };
 
+export const deleteWithdrawal = async (id) => {
+  try {
+    const response = await authSignal.delete(`/delete/withdrawal/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
 export const getSignalForTheDay = async () => {
   try {
     const response = await authSignal.get("/signal");

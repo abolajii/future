@@ -305,6 +305,7 @@ export class TradingSchedule {
           secondSignalPassed,
           scheduledWithdraw: withdrawInfo ? true : false,
           withdrawalAmount: withdrawInfo ? withdrawInfo.amount : 0,
+          withdrawalId: withdrawInfo ? withdrawInfo.id : null,
           withdrawalTime: withdrawInfo
             ? withdrawInfo.whenWithdrawHappened
             : null,

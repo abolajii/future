@@ -13,6 +13,7 @@ import styled from "styled-components";
 import { TradingSchedule } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
 import { getAllDeposits } from "../api/request";
+import { formatDate } from "../helper";
 
 const Container = styled.div``;
 
@@ -516,7 +517,8 @@ const WeeklyDetails = ({ weeklyData, setWeeklyData }) => {
               <DailyReportHeader>
                 <div>
                   <DayTitle>
-                    {day.date} {day.month}
+                    {/* {day.date} {day.month} */}
+                    {formatDate(day.fullDate)}
                   </DayTitle>
                   <StatusTag $status={status}>
                     {status.toLocaleUpperCase()}

@@ -209,7 +209,7 @@ const Charts = () => {
       ? Math.max(
           ...monthlyData.map((d) => d.revenue || 0),
           ...monthlyData.map((d) => d.expenses || 0),
-          6000 // Ensure minimum scale
+          4000 // Ensure minimum scale
         )
       : 1000;
 

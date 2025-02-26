@@ -10,7 +10,7 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: start;
-  gap: 20px;
+  gap: 15px;
 
   .empty {
     flex: 1;

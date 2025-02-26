@@ -103,7 +103,7 @@ export class TradingSchedule {
     this.processedDates = new Set();
   }
 
-  generateYearlyData(deposits = []) {
+  generateYearlyData(deposits = [], withdraws = []) {
     const currentDate = new Date("2025-02-23");
     let runningCapital = this.initialCapital;
     const currentYear = currentDate.getFullYear();

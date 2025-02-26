@@ -10,6 +10,8 @@ const FlexContainer = styled.div`
   display: flex;
   gap: 20px;
   margin-bottom: 30px;
+  /* align-items: start; */
+  /* background-color: red; */
 `;
 const Dashboard = () => {
   const [currency, setCurrency] = useState("USD");

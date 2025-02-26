@@ -2,15 +2,19 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import Signals from "./Signals";
 import Notify from "./Notify";
+import Transactions from "../pages/Transactions";
 
 const Container = styled.div`
   flex: 0.9;
-  padding: 15px;
-  background: #25262b;
   position: relative;
-  height: fit-content;
-  border-radius: 12px;
+  /* height: fit-content; */
   margin-top: 25px;
+
+  .bg {
+    padding: 15px;
+    border-radius: 12px;
+    background: #25262b;
+  }
 
   .header {
     display: flex;
@@ -121,16 +125,19 @@ const Notification = () => {
 
   return (
     <Container>
-      <div className="header">
-        <p>All Notification</p>
-        {notificationCount > 0 && (
-          <NotificationBadge>{notificationCount}</NotificationBadge>
-        )}
+      <div className="bg">
+        <div className="header">
+          <p>All Notification</p>
+          {notificationCount > 0 && (
+            <NotificationBadge>{notificationCount}</NotificationBadge>
+          )}
+        </div>
+        <Notify signals={signals} />
+        <div className="body">
+          <Signals signals={signals} setSignals={setSignals} />
+        </div>
       </div>
-      <Notify signals={signals} />
-      <div className="body">
-        <Signals signals={signals} setSignals={setSignals} />
-      </div>
+      <Transactions />
     </Container>
   );
 };

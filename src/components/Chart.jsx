@@ -24,8 +24,8 @@ ChartJS.register(
 
 const ChartContainer = styled.div`
   flex: 1.95;
-  height: 500px;
-  margin: auto;
+  /* height: 500px; */
+  /* margin: auto; */
 `;
 
 const LoadingMessage = styled.div`

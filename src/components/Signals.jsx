@@ -50,7 +50,7 @@ const StatusBadge = styled.span`
       case "in-progress":
         return "#ffec99";
       case "completed":
-        return "#28a74520";
+        return "#28a74550";
       default:
         return "#343a40";
     }
@@ -62,7 +62,7 @@ const StatusBadge = styled.span`
       case "in-progress":
         return "#f59f00";
       case "completed":
-        return "#28a745";
+        return "#28a790";
       default:
         return "#9ca3af";
     }

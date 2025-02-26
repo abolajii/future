@@ -144,19 +144,11 @@ const Transactions = () => {
 
   // Function to format date as "Feb 25, 2025 at 2:30 PM"
   const formatDate = (date) => {
-    return (
-      date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }) +
-      " at " +
-      date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true,
-      })
-    );
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   // Function to format currency
@@ -192,7 +184,7 @@ const Transactions = () => {
             ))}
           </TransactionList>
 
-          <ViewAllButton>View All Transactions</ViewAllButton>
+          {/* <ViewAllButton>View All Transactions</ViewAllButton> */}
         </div>
       </Container>
     )

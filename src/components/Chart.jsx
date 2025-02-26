@@ -32,12 +32,12 @@ const LoadingMessage = styled.div`
   color: white;
   height: 100%;
   display: flex;
-  align-items: center;
+  /* align-items: center; */
   justify-content: center;
   font-size: 1.5rem;
 `;
 
-const Charts = () => {
+const Charts = ({ isHidden }) => {
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -269,7 +269,7 @@ const Charts = () => {
 
   return (
     <ChartContainer>
-      {loading ? (
+      {isHidden ? (
         <LoadingMessage>Loading financial data...</LoadingMessage>
       ) : (
         <Bar data={data} options={options} />

@@ -49,7 +49,7 @@ const NotificationBadge = styled.div`
   align-items: center;
 `;
 
-const Notification = () => {
+const Notification = ({ setIsHidden }) => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [signals, setSignals] = useState([
     {
@@ -137,7 +137,7 @@ const Notification = () => {
           <Signals signals={signals} setSignals={setSignals} />
         </div>
       </div>
-      <Transactions />
+      <Transactions setIsHidden={setIsHidden} />
     </Container>
   );
 };

@@ -98,7 +98,7 @@ const ViewAllButton = styled.button`
   }
 `;
 
-const Transactions = () => {
+const Transactions = ({ setIsHidden }) => {
   const [deposits, setDeposits] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
@@ -129,8 +129,10 @@ const Transactions = () => {
 
       setDeposits(formattedDeposits);
       setExpenses(formattedWithdrawals);
+      setIsHidden(false);
     } catch (error) {
       console.error("Error fetching transactions:", error);
+      setIsHidden(false);
     }
   };
 

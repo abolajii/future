@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { TradingSchedule } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
 import WithdrawModal from "./WithdrawModal";
-import { getAllDeposits, getExpenses } from "../api/request";
+import { creatExpense, getAllDeposits, getExpenses } from "../api/request";
 
 const Container = styled.div`
   display: flex;
@@ -247,15 +247,25 @@ const Monthly = ({ formatAmount }) => {
           setSelectedMonth(null);
         }}
         monthData={selectedMonth || []}
-        onSubmit={(date, amount, withdrawalTime) => {
+        onSubmit={async (date, amount, withdrawalTime, resetForm) => {
           const result = trading.scheduledWithdraw(
             date.fullDate,
             parseFloat(amount),
             withdrawalTime
           );
           if (result.success) {
-            setTradingData([...trading.yearlyData]);
-            setIsModalOpen(false);
+            const data = {
+              date: date.fullDate,
+              amount: parseFloat(amount),
+              whenWithdraw: withdrawalTime,
+            };
+
+            try {
+              setIsModalOpen(false);
+              await creatExpense(data);
+              setTradingData([...trading.yearlyData]);
+              resetForm();
+            } catch (e) {}
           } else {
             alert(result.message);
           }

@@ -14,8 +14,16 @@ export const updateRecentCapital = () => {
   return authSignal.get("/update-capital");
 };
 
+export const creatExpense = async (data) => {
+  try {
+    const response = await authSignal.post("/withdraw", data);
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
 export const addDeposit = async (data) => {
-  console.log(data);
   try {
     const response = await authSignal.post("/add/deposit", data);
     return response.data;

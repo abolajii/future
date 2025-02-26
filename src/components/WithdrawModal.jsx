@@ -241,6 +241,13 @@ const WithdrawModal = ({
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
+  const resetForm = () => {
+    setSelectedDate(null);
+    setWithdrawalTime("inbetween-trade");
+    setAmount("");
+    setError("");
+  };
+
   const getMaxWithdrawal = () => {
     if (!selectedDate) return 0;
     switch (withdrawalTime) {
@@ -279,7 +286,7 @@ const WithdrawModal = ({
       return;
     }
 
-    onSubmit(selectedDate, withdrawalAmount, withdrawalTime);
+    onSubmit(selectedDate, withdrawalAmount, withdrawalTime, resetForm);
   };
 
   return (

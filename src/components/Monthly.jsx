@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { TradingSchedule } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
 import WithdrawModal from "./WithdrawModal";
-import { getAllDeposits } from "../api/request";
+import { getAllDeposits, getExpenses } from "../api/request";
 
 const Container = styled.div`
   display: flex;
@@ -170,11 +170,41 @@ const Monthly = ({ formatAmount }) => {
   const [deposits, setDeposits] = useState([]);
   const [trading] = useState(new TradingSchedule(user.monthly_capital)); // You'll need to import your Trading class
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expenses, setExpenses] = useState([]);
+
+  const withdraws = [
+    {
+      dateOfWithdraw: "2025-03-05", // March 5th
+      amount: 200,
+      whenWithdrawHappened: "before-trade",
+    },
+    {
+      dateOfWithdraw: "2025-03-09", // March 15th
+      amount: 150,
+      whenWithdrawHappened: "inbetween-trade",
+    },
+    {
+      dateOfWithdraw: "2025-03-14", // March 25th
+      amount: 100,
+      whenWithdrawHappened: "after-trade",
+    },
+  ];
 
   const fetchDeposits = async () => {
     try {
       const response = await getAllDeposits();
+      const withdrawResponse = await getExpenses();
+
+      const formattedExpenses = withdrawResponse.withdraw.map((e) => ({
+        dateOfWithdraw: e.date.split("T")[0],
+        amount: e.amount,
+        whenWithdrawHappened: e.whenWithdraw,
+      }));
+
+      console.log(withdrawResponse.withdraw);
+
       setDeposits(response.deposits);
+      setExpenses(formattedExpenses);
     } catch (error) {
       console.error("Error fetching deposits:", error);
     }
@@ -191,7 +221,10 @@ const Monthly = ({ formatAmount }) => {
       depositBonus: d.bonus,
       whenDepositHappened: d.whenDeposited,
     }));
-    const newWeeklyData = trading.generateYearlyData(formattedDeposits);
+    const newWeeklyData = trading.generateYearlyData(
+      formattedDeposits,
+      expenses
+    );
     setTradingData(newWeeklyData);
   };
 

@@ -42,8 +42,8 @@ export const formatDate = (dateString) => {
 
 export const calculateDayProfits = (
   initialBalance,
-  depositInfo = null,
-  whenDepositHappened = null
+  transactionInfo = null,
+  transactionTiming = null
 ) => {
   // First trade calculations
   const firstTradeTotalAmount = initialBalance * 0.01;
@@ -52,11 +52,26 @@ export const calculateDayProfits = (
   // Calculate balance after first trade
   let balanceAfterFirstTrade = initialBalance + firstTradeProfit;
 
-  // Handle deposit if it's in-between trades
+  // Handle transaction if it's in-between trades
   let effectiveSecondTradeBalance = balanceAfterFirstTrade;
-  if (depositInfo && whenDepositHappened === "inbetween-trade") {
-    effectiveSecondTradeBalance +=
-      depositInfo.depositedAmount + (depositInfo.depositBonus || 0);
+
+  if (transactionInfo) {
+    if (transactionTiming === "inbetween-trade") {
+      // Handle deposit
+      if (transactionInfo.depositedAmount !== undefined) {
+        effectiveSecondTradeBalance +=
+          transactionInfo.depositedAmount + (transactionInfo.depositBonus || 0);
+      }
+      // Handle withdrawal
+      else if (transactionInfo.withdrawAmount !== undefined) {
+        // Ensure we don't withdraw more than available
+        const maxWithdrawal = Math.min(
+          transactionInfo.withdrawAmount,
+          balanceAfterFirstTrade
+        );
+        effectiveSecondTradeBalance -= maxWithdrawal;
+      }
+    }
   }
 
   // Second trade calculations based on the effective balance
@@ -66,28 +81,30 @@ export const calculateDayProfits = (
   // Calculate final balance
   let finalBalance = effectiveSecondTradeBalance + secondTradeProfit;
 
-  // Handle deposit if it's after trades
-  if (depositInfo && whenDepositHappened === "after-trade") {
-    finalBalance +=
-      depositInfo.depositedAmount + (depositInfo.depositBonus || 0);
+  // Handle transaction if it's after trades
+  if (transactionInfo && transactionTiming === "after-trade") {
+    // Handle deposit
+    if (transactionInfo.depositedAmount !== undefined) {
+      finalBalance +=
+        transactionInfo.depositedAmount + (transactionInfo.depositBonus || 0);
+    }
+    // Handle withdrawal
+    else if (transactionInfo.withdrawAmount !== undefined) {
+      // Ensure we don't withdraw more than available
+      const maxWithdrawal = Math.min(
+        transactionInfo.withdrawAmount,
+        finalBalance
+      );
+      finalBalance -= maxWithdrawal;
+    }
   }
 
-  // Calculate total profit
-  let totalProfit;
-  if (depositInfo) {
-    if (whenDepositHappened === "inbetween-trade") {
-      totalProfit = firstTradeProfit + secondTradeProfit;
-    } else if (whenDepositHappened === "after-trade") {
-      totalProfit = firstTradeProfit + secondTradeProfit;
-    } else {
-      totalProfit = firstTradeProfit + secondTradeProfit;
-    }
-  } else {
-    totalProfit = firstTradeProfit + secondTradeProfit;
-  }
+  // Calculate total profit (always the same formula since we're tracking actual trading profit)
+  const totalProfit = firstTradeProfit + secondTradeProfit;
 
   return {
     startingCapital: initialBalance,
+    balanceAfterFirstTrade: balanceAfterFirstTrade,
     signal1Capital: firstTradeTotalAmount,
     signal1Profit: firstTradeProfit,
     signal2Capital: secondTradeTotalAmount,
@@ -96,6 +113,63 @@ export const calculateDayProfits = (
     finalBalance: finalBalance,
   };
 };
+
+// export const calculateDayProfits = (
+//   initialBalance,
+//   depositInfo = null,
+//   whenDepositHappened = null
+// ) => {
+//   // First trade calculations
+//   const firstTradeTotalAmount = initialBalance * 0.01;
+//   const firstTradeProfit = firstTradeTotalAmount * 0.88;
+
+//   // Calculate balance after first trade
+//   let balanceAfterFirstTrade = initialBalance + firstTradeProfit;
+
+//   // Handle deposit if it's in-between trades
+//   let effectiveSecondTradeBalance = balanceAfterFirstTrade;
+//   if (depositInfo && whenDepositHappened === "inbetween-trade") {
+//     effectiveSecondTradeBalance +=
+//       depositInfo.depositedAmount + (depositInfo.depositBonus || 0);
+//   }
+
+//   // Second trade calculations based on the effective balance
+//   const secondTradeTotalAmount = effectiveSecondTradeBalance * 0.01;
+//   const secondTradeProfit = secondTradeTotalAmount * 0.88;
+
+//   // Calculate final balance
+//   let finalBalance = effectiveSecondTradeBalance + secondTradeProfit;
+
+//   // Handle deposit if it's after trades
+//   if (depositInfo && whenDepositHappened === "after-trade") {
+//     finalBalance +=
+//       depositInfo.depositedAmount + (depositInfo.depositBonus || 0);
+//   }
+
+//   // Calculate total profit
+//   let totalProfit;
+//   if (depositInfo) {
+//     if (whenDepositHappened === "inbetween-trade") {
+//       totalProfit = firstTradeProfit + secondTradeProfit;
+//     } else if (whenDepositHappened === "after-trade") {
+//       totalProfit = firstTradeProfit + secondTradeProfit;
+//     } else {
+//       totalProfit = firstTradeProfit + secondTradeProfit;
+//     }
+//   } else {
+//     totalProfit = firstTradeProfit + secondTradeProfit;
+//   }
+
+//   return {
+//     startingCapital: initialBalance,
+//     signal1Capital: firstTradeTotalAmount,
+//     signal1Profit: firstTradeProfit,
+//     signal2Capital: secondTradeTotalAmount,
+//     signal2Profit: secondTradeProfit,
+//     totalProfit: totalProfit,
+//     finalBalance: finalBalance,
+//   };
+// };
 export class TradingSchedule {
   constructor(initialCapital) {
     this.yearlyData = [];
@@ -127,13 +201,31 @@ export class TradingSchedule {
           monthIndex,
           day
         ).toLocaleDateString("en-CA");
+
+        // Find if there's a deposit for this date
         const depositInfo = deposits.find(
           (d) => d?.dateOfDeposit === dateString
         );
 
+        // Find if there's a withdrawal for this date
+        const withdrawInfo = withdraws.find(
+          (w) => w?.dateOfWithdraw === dateString
+        );
+
+        // Handle pre-trade deposits
         if (depositInfo && depositInfo.whenDepositHappened === "before-trade") {
           runningCapital +=
             depositInfo.amount + (depositInfo.depositBonus || 0);
+        }
+
+        // Handle pre-trade withdrawals
+        if (
+          withdrawInfo &&
+          withdrawInfo.whenWithdrawHappened === "before-trade"
+        ) {
+          runningCapital -= withdrawInfo.amount;
+          // Ensure capital doesn't go negative
+          runningCapital = Math.max(0, runningCapital);
         }
 
         if (this.processedDates.has(dateString)) continue;
@@ -145,11 +237,10 @@ export class TradingSchedule {
         const formattedDate = `${weekday} ${day}${daySuffix}`;
 
         const { firstSignalPassed, secondSignalPassed } = this.checkTime(date);
-        // const profits = calculateDayProfits(runningCapital);
 
         let dayProfits;
+        // Handle trading with deposits
         if (depositInfo) {
-          // Only pass deposit info to calculateDayProfits for "in-between" and "completed" cases
           if (depositInfo.whenDepositHappened !== "before-trade") {
             dayProfits = calculateDayProfits(
               runningCapital,
@@ -160,21 +251,42 @@ export class TradingSchedule {
               depositInfo.whenDepositHappened
             );
           } else {
-            // For "before-trade" deposits, we've already added it to runningCapital
             dayProfits = calculateDayProfits(runningCapital);
           }
-        } else {
+        }
+        // Handle trading with withdrawals
+        else if (
+          withdrawInfo &&
+          withdrawInfo.whenWithdrawHappened !== "before-trade"
+        ) {
+          dayProfits = calculateDayProfits(
+            runningCapital,
+            {
+              withdrawAmount: withdrawInfo.amount,
+            },
+            withdrawInfo.whenWithdrawHappened
+          );
+        }
+        // Regular trading day with no deposits or withdrawals
+        else {
           dayProfits = calculateDayProfits(runningCapital);
         }
 
         let adjustedTotalProfit = dayProfits.totalProfit;
-        if (depositInfo) {
-          // Don't subtract deposit amount from total profit for "before-trade" deposits
-          // as it's already handled in calculateDayProfits
-          if (depositInfo.whenDepositHappened !== "before-trade") {
-            adjustedTotalProfit =
-              dayProfits.finalBalance - runningCapital - depositInfo.amount;
-          }
+
+        // Adjust profits for deposits
+        if (depositInfo && depositInfo.whenDepositHappened !== "before-trade") {
+          adjustedTotalProfit =
+            dayProfits.finalBalance - runningCapital - depositInfo.amount;
+        }
+
+        // Adjust profits for withdrawals
+        if (
+          withdrawInfo &&
+          withdrawInfo.whenWithdrawHappened !== "before-trade"
+        ) {
+          adjustedTotalProfit =
+            dayProfits.finalBalance - runningCapital + withdrawInfo.amount;
         }
 
         const tradeData = {
@@ -191,9 +303,11 @@ export class TradingSchedule {
           balanceAfterTrade: dayProfits.finalBalance,
           firstSignalPassed,
           secondSignalPassed,
-          scheduledWithdraw: false,
-          withdrawalAmount: 0,
-          withdrawalTime: null,
+          scheduledWithdraw: withdrawInfo ? true : false,
+          withdrawalAmount: withdrawInfo ? withdrawInfo.amount : 0,
+          withdrawalTime: withdrawInfo
+            ? withdrawInfo.whenWithdrawHappened
+            : null,
           depositInfo,
         };
 

@@ -566,7 +566,8 @@ const Recovery = () => {
                       <InfoRow>
                         <InfoLabel>Recovery Time:</InfoLabel>
                         <InfoValue>
-                          {expense.recoveryInfo.daysNeeded} days
+                          {expense.recoveryInfo.daysNeeded}{" "}
+                          {expense.recoveryInfo.daysNeeded > 1 ? "days" : "day"}
                         </InfoValue>
                       </InfoRow>
                       <InfoRow>

@@ -4,21 +4,25 @@ import { formatValue } from "../utils/tradingUtils";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Monthly from "../components/Monthly";
 import useAuthStore from "../store/authStore";
+import Recovery from "./Recovery";
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
+  gap: 20px;
 
   .empty {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
     color: #ffffff;
-    font-weight: 600;
   }
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 5px;
 `;
 
 const Card = styled.div`
@@ -29,6 +33,7 @@ const Card = styled.div`
   background: #25262b;
   max-width: 400px;
   width: 100%;
+  /* margin-top: ; */
 `;
 
 const CardHeader = styled.div`
@@ -46,8 +51,6 @@ const CardTitle = styled.h2`
 const CardContent = styled.div`
   padding: 1.25rem;
 `;
-
-const Title = styled.p``;
 
 const Balance = styled.div`
   font-size: 2rem;
@@ -103,8 +106,12 @@ const Withdraw = () => {
   };
   return (
     <div>
+      <Title>Withdrawal Recovery Analysis</Title>
+
       <Header>
-        <div className="empty"></div>
+        <div className="empty">
+          <Recovery />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Current Balance</CardTitle>

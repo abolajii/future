@@ -175,14 +175,14 @@ const DailyProfit = ({ formatAmount }) => {
                         ? "completed"
                         : !day.firstSignalPassed && !day.secondSignalPassed
                         ? "not-started"
-                        : "awaiting"
+                        : "inprogress"
                     }
                   >
                     {day.firstSignalPassed && day.secondSignalPassed
                       ? "Completed"
                       : !day.firstSignalPassed && !day.secondSignalPassed
                       ? "Not Started"
-                      : "Awaiting Signal"}
+                      : "In Progress"}
                   </StatusBadge>
                 </Td>
               </tr>

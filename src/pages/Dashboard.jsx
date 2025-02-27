@@ -16,6 +16,7 @@ const FlexContainer = styled.div`
 const Dashboard = () => {
   const [currency, setCurrency] = useState("USD");
   const [isHidden, setIsHidden] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const formatValue = (value = 0, nairaRate = 1600) => {
     const options = {
@@ -40,8 +41,8 @@ const Dashboard = () => {
       {/* <Notification /> */}
       <Stats isHidden={isHidden} formatValue={formatValue} />
       <FlexContainer>
-        <Chart isHidden={isHidden} />
-        <Notification setIsHidden={setIsHidden} />
+        <Chart isHidden={loading} />
+        <Notification setIsHidden={setLoading} />
       </FlexContainer>
       <DailyProfit formatAmount={formatValue} />
 

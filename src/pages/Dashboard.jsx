@@ -37,6 +37,7 @@ const Dashboard = () => {
         currency={currency}
         setCurrency={setCurrency}
         isHidden={isHidden}
+        setIsHidden={setIsHidden}
       />
       {/* <Notification /> */}
       <Stats isHidden={isHidden} formatValue={formatValue} />

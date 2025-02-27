@@ -118,11 +118,12 @@ const Signals = ({ signals: propSignals, setSignals: propSetSignals }) => {
       // Use signals passed from parent if available
       setSignals(propSignals);
       setLoading(false);
+      fetchSignals();
     } else {
       // Otherwise fetch signals from the API
       fetchSignals();
     }
-  }, [propSignals]);
+  }, []);
 
   const fetchSignals = async () => {
     try {

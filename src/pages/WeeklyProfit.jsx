@@ -12,6 +12,7 @@ import styled from "styled-components";
 import { generateWeeklyDetails } from "../utils/weeklyUtils";
 import { MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { formatDate } from "../utils/tradingUtils";
+import useAuthStore from "../store/authStore";
 
 const Container = styled.div``;
 
@@ -309,7 +310,8 @@ const StatusTag = styled.span`
 const WeeklyProfit = () => {
   const [currency, setCurrency] = useState("USD");
   const [weekOffset, setWeekOffset] = useState(0);
-  const weeklyDetails = generateWeeklyDetails(weekOffset);
+  const { user } = useAuthStore();
+  const weeklyDetails = generateWeeklyDetails(weekOffset, user?.weekly_capital);
 
   const [weeklyData, setWeeklyData] = useState(weeklyDetails);
 
@@ -341,7 +343,10 @@ const WeeklyProfit = () => {
   console.log(weekOffset, weeklyData);
 
   React.useEffect(() => {
-    const weeklyDetails = generateWeeklyDetails(weekOffset);
+    const weeklyDetails = generateWeeklyDetails(
+      weekOffset,
+      user?.weekly_capital
+    );
     setWeeklyData(weeklyDetails);
   }, [weekOffset]);
 

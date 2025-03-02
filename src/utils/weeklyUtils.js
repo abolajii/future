@@ -1,7 +1,7 @@
 const generateWeeklyDetails = (
   weekOffset = 0,
+  initialCapital,
   currentDate = new Date(),
-  initialCapital = 3343.84,
   deposits = [],
   withdrawals = []
 ) => {

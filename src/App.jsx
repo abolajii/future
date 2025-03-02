@@ -7,6 +7,7 @@ import Withdraw from "./pages/Withdraw";
 import Deposit from "./pages/Deposit";
 import Login from "./pages/Login";
 import WeeklyProfit from "./pages/WeeklyProfit";
+import DepositDoublingTracker from "./components/DepositDoublingTracker";
 
 const Home = () => <div>Home</div>;
 
@@ -34,6 +35,14 @@ const App = () => {
           element={
             <MainLayout>
               <WeeklyProfit />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/doubling"
+          element={
+            <MainLayout>
+              <DepositDoublingTracker />
             </MainLayout>
           }
         />

@@ -7,6 +7,7 @@ import { formatValue } from "../utils/tradingUtils";
 import Modal from "../components/Modal";
 import DepositForm from "../components/DepositForm";
 import DeleteModal from "../components/DeleteModal";
+import { useNavigate } from "react-router-dom";
 
 const PageTitle = styled.h1`
   font-size: 1.5rem;
@@ -233,6 +234,8 @@ const Deposit = () => {
     setSelectedDeposit(deposit);
   };
 
+  const navigate = useNavigate();
+
   return (
     <div>
       {/* <PageTitle>Deposits</PageTitle> */}
@@ -301,6 +304,9 @@ const Deposit = () => {
             Switch to {currency === "USD" ? "NGN" : "USD"}
           </CurrencyToggle>
           <Button onClick={handleCreateDeposit}>Create Deposit</Button>
+          <Button onClick={() => navigate("/doubling")}>
+            View Deposit Stats
+          </Button>
         </div>
       </Header>
 

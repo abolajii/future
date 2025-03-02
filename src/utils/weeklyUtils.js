@@ -5,10 +5,6 @@ const generateWeeklyDetails = (
   deposits = [],
   withdrawals = []
 ) => {
-  //   console.log(`Generating weekly details with week offset: ${weekOffset}`);
-  //   console.log(`Reference date: ${currentDate.toISOString().split("T")[0]}`);
-
-  // Constants for date formatting
   const MONTHS = [
     "January",
     "February",
@@ -310,84 +306,84 @@ const applyTransactions = (capital, dateString, deposits, withdrawals) => {
   return updatedCapital;
 };
 
-const getPreviousWeekProfit = (
-  currentWeekStart,
-  initialCapital,
-  deposits,
-  withdrawals
-) => {
-  const previousWeekStart = new Date(currentWeekStart);
-  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+// const getPreviousWeekProfit = (
+//   currentWeekStart,
+//   initialCapital,
+//   deposits,
+//   withdrawals
+// ) => {
+//   const previousWeekStart = new Date(currentWeekStart);
+//   previousWeekStart.setDate(previousWeekStart.getDate() - 7);
 
-  const previousWeekEnd = new Date(currentWeekStart);
-  previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
+//   const previousWeekEnd = new Date(currentWeekStart);
+//   previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
 
-  let simulatedCapital = initialCapital;
-  let previousWeekProfit = 0;
+//   let simulatedCapital = initialCapital;
+//   let previousWeekProfit = 0;
 
-  // Simulate up to previous week start (if needed)
-  // In a real implementation, you would retrieve this data from your store
-  const daysToSimulateToPreviousWeek = Math.max(
-    0,
-    Math.floor(
-      (previousWeekStart - new Date("2025-02-23")) / (1000 * 60 * 60 * 24)
-    )
-  );
+//   // Simulate up to previous week start (if needed)
+//   // In a real implementation, you would retrieve this data from your store
+//   const daysToSimulateToPreviousWeek = Math.max(
+//     0,
+//     Math.floor(
+//       (previousWeekStart - new Date("2025-02-23")) / (1000 * 60 * 60 * 24)
+//     )
+//   );
 
-  for (let i = 0; i < daysToSimulateToPreviousWeek; i++) {
-    const simulationDate = new Date("2025-02-23");
-    simulationDate.setDate(simulationDate.getDate() + i);
-    const dateString = simulationDate.toISOString().split("T")[0];
+//   for (let i = 0; i < daysToSimulateToPreviousWeek; i++) {
+//     const simulationDate = new Date("2025-02-23");
+//     simulationDate.setDate(simulationDate.getDate() + i);
+//     const dateString = simulationDate.toISOString().split("T")[0];
 
-    const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
-    const dayWithdrawals = withdrawals.filter(
-      (w) => w.dateOfWithdrawal === dateString
-    );
+//     const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
+//     const dayWithdrawals = withdrawals.filter(
+//       (w) => w.dateOfWithdrawal === dateString
+//     );
 
-    let dayResult;
-    if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
-      dayResult = processDayWithTransactions(
-        simulatedCapital,
-        dayDeposits,
-        dayWithdrawals
-      );
-    } else {
-      dayResult = calculateDayProfits(simulatedCapital);
-    }
+//     let dayResult;
+//     if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
+//       dayResult = processDayWithTransactions(
+//         simulatedCapital,
+//         dayDeposits,
+//         dayWithdrawals
+//       );
+//     } else {
+//       dayResult = calculateDayProfits(simulatedCapital);
+//     }
 
-    // Critical fix - properly update the simulated capital
-    simulatedCapital = dayResult.finalBalance;
-  }
+//     // Critical fix - properly update the simulated capital
+//     simulatedCapital = dayResult.finalBalance;
+//   }
 
-  // Simulate previous week to calculate profit
-  for (let i = 0; i < 7; i++) {
-    const currentDay = new Date(previousWeekStart);
-    currentDay.setDate(previousWeekStart.getDate() + i);
-    const dateString = currentDay.toISOString().split("T")[0];
+//   // Simulate previous week to calculate profit
+//   for (let i = 0; i < 7; i++) {
+//     const currentDay = new Date(previousWeekStart);
+//     currentDay.setDate(previousWeekStart.getDate() + i);
+//     const dateString = currentDay.toISOString().split("T")[0];
 
-    const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
-    const dayWithdrawals = withdrawals.filter(
-      (w) => w.dateOfWithdrawal === dateString
-    );
+//     const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
+//     const dayWithdrawals = withdrawals.filter(
+//       (w) => w.dateOfWithdrawal === dateString
+//     );
 
-    let dayResult;
-    if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
-      dayResult = processDayWithTransactions(
-        simulatedCapital,
-        dayDeposits,
-        dayWithdrawals
-      );
-    } else {
-      dayResult = calculateDayProfits(simulatedCapital);
-    }
+//     let dayResult;
+//     if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
+//       dayResult = processDayWithTransactions(
+//         simulatedCapital,
+//         dayDeposits,
+//         dayWithdrawals
+//       );
+//     } else {
+//       dayResult = calculateDayProfits(simulatedCapital);
+//     }
 
-    // Critical fix - properly update the simulated capital
-    simulatedCapital = dayResult.finalBalance;
-    previousWeekProfit += dayResult.totalProfit;
-  }
+//     // Critical fix - properly update the simulated capital
+//     simulatedCapital = dayResult.finalBalance;
+//     previousWeekProfit += dayResult.totalProfit;
+//   }
 
-  return previousWeekProfit;
-};
+//   return previousWeekProfit;
+// };
 
 const calculateDailyProfit = (capital) => {
   const firstTradeAmount = capital * 0.01;
@@ -480,6 +476,118 @@ const calculateDayProfits = (
   };
 
   return result;
+};
+
+// Replace the getPreviousWeekProfit function with this improved version
+// const getPreviousWeekProfit = (
+//   currentWeekStart,
+//   initialCapital,
+//   deposits = [],
+//   withdrawals = []
+// ) => {
+//   // Calculate the start date of the previous week
+//   const previousWeekStart = new Date(currentWeekStart);
+//   previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+//   // Calculate the end date of the previous week
+//   const previousWeekEnd = new Date(currentWeekStart);
+//   previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
+
+//   // Create a weekOffset that represents the previous week (-1 from current)
+//   const currentWeekOffset = Math.floor(
+//     (currentWeekStart - new Date()) / (1000 * 60 * 60 * 24 * 7)
+//   );
+//   const previousWeekOffset = currentWeekOffset - 1;
+
+//   // Generate the weekly details for the previous week directly
+//   const previousWeekDetails = generateWeeklyDetails(
+//     previousWeekOffset,
+//     initialCapital,
+//     new Date(), // Use current date as reference
+//     deposits,
+//     withdrawals
+//   );
+
+//   // Return just the weeklyProfit from the previous week
+//   return previousWeekDetails.weeklyProfit;
+// };
+
+const getPreviousWeekProfit = (
+  currentWeekStart,
+  initialCapital,
+  deposits,
+  withdrawals,
+  date
+) => {
+  const previousWeekStart = new Date(currentWeekStart);
+  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+  const previousWeekEnd = new Date(currentWeekStart);
+  previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
+
+  let simulatedCapital = initialCapital;
+  let previousWeekProfit = 0;
+
+  // Simulate up to previous week start (if needed)
+  // In a real implementation, you would retrieve this data from your store
+  const daysToSimulateToPreviousWeek = Math.max(
+    0,
+    Math.floor((previousWeekStart - new Date()) / (1000 * 60 * 60 * 24))
+  );
+
+  for (let i = 0; i < daysToSimulateToPreviousWeek; i++) {
+    const simulationDate = new Date();
+    simulationDate.setDate(simulationDate.getDate() + i);
+    const dateString = simulationDate.toISOString().split("T")[0];
+
+    const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
+    const dayWithdrawals = withdrawals.filter(
+      (w) => w.dateOfWithdrawal === dateString
+    );
+
+    let dayResult;
+    if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
+      dayResult = processDayWithTransactions(
+        simulatedCapital,
+        dayDeposits,
+        dayWithdrawals
+      );
+    } else {
+      dayResult = calculateDayProfits(simulatedCapital);
+    }
+
+    // Critical fix - properly update the simulated capital
+    simulatedCapital = dayResult.finalBalance;
+  }
+
+  // Simulate previous week to calculate profit
+  for (let i = 0; i < 7; i++) {
+    const currentDay = new Date(previousWeekStart);
+    currentDay.setDate(previousWeekStart.getDate() + i);
+    const dateString = currentDay.toISOString().split("T")[0];
+
+    const dayDeposits = deposits.filter((d) => d.dateOfDeposit === dateString);
+    const dayWithdrawals = withdrawals.filter(
+      (w) => w.dateOfWithdrawal === dateString
+    );
+
+    let dayResult;
+    if (dayDeposits.length > 0 || dayWithdrawals.length > 0) {
+      dayResult = processDayWithTransactions(
+        simulatedCapital,
+        dayDeposits,
+        dayWithdrawals
+      );
+    } else {
+      dayResult = calculateDayProfits(simulatedCapital);
+    }
+
+    // Critical fix - properly update the simulated capital
+    simulatedCapital = dayResult.finalBalance;
+    previousWeekProfit += dayResult.totalProfit;
+  }
+
+  return previousWeekProfit;
 };
 
 export {

@@ -13,6 +13,7 @@ import { generateWeeklyDetails } from "../utils/weeklyUtils";
 import { MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { formatDate } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
+import Comparison from "./Comparison";
 
 const Container = styled.div``;
 
@@ -407,9 +408,14 @@ const WeeklyProfit = () => {
               {weeklyData?.weekDateRange}
             </DetailValue>
           </CalendarWidget>
-          {/* {weeklyData?.profitComparison !== null && (
-            <WeekComparison>Comparison</WeekComparison>
-          )} */}
+          {weeklyData?.profitComparison !== null && (
+            <WeekComparison>
+              <Comparison
+                comparison={weeklyData?.profitComparison}
+                currency={currency}
+              />
+            </WeekComparison>
+          )}
         </div>
       </WidgetGrid>
       <WidgetGrid>

@@ -502,7 +502,7 @@ const DepositDoublingTracker = () => {
         <Table>
           <thead>
             <tr>
-              <Th>Deposit</Th>
+              <Th>Date of deposit</Th>
               <Th>Amount</Th>
               <Th>Target</Th>
               <Th>Days</Th>
@@ -527,9 +527,7 @@ const DepositDoublingTracker = () => {
                     isExpanded={isExpanded}
                     onClick={() => toggleRowExpand(index)}
                   >
-                    <Td>
-                      <DepositNumber>#{index + 1}</DepositNumber>
-                    </Td>
+                    <Td>{formatDate(deposits[index].dateOfDeposit)}</Td>
                     <Td>{formatAmount(result.depositAmount)}</Td>
                     <Td>{formatAmount(result.targetAmount)}</Td>
                     <Td>{result.daysToDouble}</Td>

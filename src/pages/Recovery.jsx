@@ -4,7 +4,6 @@ import { getExpenses } from "../api/request";
 import { formatDate } from "../utils/tradingUtils";
 import useAuthStore from "../store/authStore";
 
-// Styled Components
 const Container = styled.div`
   margin-bottom: 20px;
 `;
@@ -129,332 +128,364 @@ const EmptyState = styled.div`
   color: #a0a0a0;
 `;
 
+const InfoSeparator = styled.div`
+  height: 1px;
+  background: #ff980020;
+  margin: 0.75rem 0;
+`;
+
+const YearlyProfitSection = styled.div`
+  border-top: 1px solid #ff980020;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+`;
+
+const YearlyProfitTitle = styled.div`
+  color: #ff9800;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+`;
+
+// Import or implement the calculateDayProfits function
+const calculateDayProfits = (
+  initialBalance,
+  transactionInfo = null,
+  transactionTiming = null
+) => {
+  // First trade calculations
+  const firstTradeTotalAmount = initialBalance * 0.01;
+  const firstTradeProfit = firstTradeTotalAmount * 0.88;
+
+  // Calculate balance after first trade
+  let balanceAfterFirstTrade = initialBalance + firstTradeProfit;
+
+  // Handle transaction if it's in-between trades
+  let effectiveSecondTradeBalance = balanceAfterFirstTrade;
+
+  if (transactionInfo) {
+    if (transactionTiming === "inbetween-trade") {
+      // Handle deposit
+      if (transactionInfo.depositedAmount !== undefined) {
+        effectiveSecondTradeBalance +=
+          transactionInfo.depositedAmount + (transactionInfo.depositBonus || 0);
+      }
+      // Handle withdrawal
+      else if (transactionInfo.withdrawAmount !== undefined) {
+        // Ensure we don't withdraw more than available
+        const maxWithdrawal = Math.min(
+          transactionInfo.withdrawAmount,
+          balanceAfterFirstTrade
+        );
+        effectiveSecondTradeBalance -= maxWithdrawal;
+      }
+    }
+  }
+
+  // Second trade calculations based on the effective balance
+  const secondTradeTotalAmount = effectiveSecondTradeBalance * 0.01;
+  const secondTradeProfit = secondTradeTotalAmount * 0.88;
+
+  // Calculate final balance
+  let finalBalance = effectiveSecondTradeBalance + secondTradeProfit;
+
+  // Handle transaction if it's after trades
+  if (transactionInfo && transactionTiming === "after-trade") {
+    // Handle deposit
+    if (transactionInfo.depositedAmount !== undefined) {
+      finalBalance +=
+        transactionInfo.depositedAmount + (transactionInfo.depositBonus || 0);
+    }
+    // Handle withdrawal
+    else if (transactionInfo.withdrawAmount !== undefined) {
+      // Ensure we don't withdraw more than available
+      const maxWithdrawal = Math.min(
+        transactionInfo.withdrawAmount,
+        finalBalance
+      );
+      finalBalance -= maxWithdrawal;
+    }
+  }
+
+  // Calculate total profit (always the same formula since we're tracking actual trading profit)
+  const totalProfit = firstTradeProfit + secondTradeProfit;
+
+  return {
+    startingCapital: initialBalance,
+    balanceAfterFirstTrade: balanceAfterFirstTrade,
+    signal1Capital: firstTradeTotalAmount,
+    signal1Profit: firstTradeProfit,
+    signal2Capital: secondTradeTotalAmount,
+    signal2Profit: secondTradeProfit,
+    totalProfit: totalProfit,
+    finalBalance: finalBalance,
+  };
+};
+
+// Calculate the yearly profit correctly using the calculateDayProfits function
+const calculateYearlyProfit = (initialCapital, startDate = new Date()) => {
+  let runningCapital = initialCapital;
+  let totalProfit = 0;
+  let dailyProfits = [];
+
+  // Get starting date
+  const currentDate = new Date(startDate);
+
+  // Calculate the end date (same day next year)
+  const endDate = new Date(startDate);
+  endDate.setFullYear(endDate.getFullYear() + 1);
+
+  // Loop through each day until we reach the same date next year
+  while (currentDate < endDate) {
+    const dayResults = calculateDayProfits(runningCapital);
+    const dayProfit = dayResults.totalProfit;
+
+    totalProfit += dayProfit;
+    dailyProfits.push(dayProfit);
+    runningCapital = dayResults.finalBalance;
+
+    // Move to the next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Get the actual number of days calculated (typically 365 or 366 in leap years)
+  const daysCalculated = dailyProfits.length;
+
+  return {
+    totalProfit,
+    finalCapital: runningCapital,
+    dailyProfits,
+    daysCalculated,
+    averageDailyProfit: totalProfit / daysCalculated,
+  };
+};
+
+// Function to calculate recovery days with correct yearly profit calculations
+const calculateRecoveryDays = (
+  amount,
+  withdrawalDate,
+  whenWithdraw,
+  currentCapital = 2500, // Current capital as of today
+  currentDate = new Date(), // Today's date
+  signalStatus = 0 // 0: two signals, 1: one signal, 2: no signals for today
+) => {
+  // Parse dates
+  const today = new Date(currentDate);
+  const withdrawDate = new Date(withdrawalDate);
+
+  // First, calculate what the capital will be on the withdrawal date
+  let runningCapital = currentCapital;
+  let currentDay = new Date(today);
+
+  // Check if withdrawal date is in the future
+  if (withdrawDate > today) {
+    // Process today's trades based on signalStatus
+    if (signalStatus === 0) {
+      // Run 2 signals for today
+      const result = calculateDayProfits(runningCapital);
+      runningCapital = result.finalBalance;
+    } else if (signalStatus === 1) {
+      // Run just 1 signal for today
+      const result = calculateDayProfits(runningCapital);
+      // Only apply first signal
+      runningCapital = result.balanceAfterFirstTrade;
+    }
+    // If signalStatus is 2, run no signals for today
+
+    // Move to the next day
+    currentDay.setDate(currentDay.getDate() + 1);
+
+    // Calculate capital growth for each day until the withdrawal date
+    while (currentDay < withdrawDate) {
+      const result = calculateDayProfits(runningCapital);
+      runningCapital = result.finalBalance;
+
+      // Move to the next day
+      currentDay.setDate(currentDay.getDate() + 1);
+    }
+  }
+
+  // Calculate yearly profit BEFORE withdrawal
+  const yearlyProfitBeforeWithdraw = calculateYearlyProfit(runningCapital);
+
+  // Apply the withdrawal based on whenWithdraw
+  let capitalAfterWithdraw;
+
+  if (whenWithdraw === "before-trade") {
+    // If withdrawal happens before trades, simply subtract the amount
+    capitalAfterWithdraw = runningCapital - amount;
+  } else if (whenWithdraw === "inbetween-trade") {
+    // If withdrawal happens between trades, we need to simulate the first trade first
+    const firstTradeResult = {
+      startingCapital: runningCapital,
+      balanceAfterFirstTrade: runningCapital + runningCapital * 0.01 * 0.88,
+    };
+    capitalAfterWithdraw = firstTradeResult.balanceAfterFirstTrade - amount;
+  } else {
+    // after-trade
+    // If withdrawal happens after both trades, simulate a full day of trading first
+    const dayResult = calculateDayProfits(runningCapital);
+    capitalAfterWithdraw = dayResult.finalBalance - amount;
+  }
+
+  // Calculate yearly profit AFTER withdrawal
+  const yearlyProfitAfterWithdraw = calculateYearlyProfit(capitalAfterWithdraw);
+
+  // Calculate the profit difference
+  const profitDifference =
+    yearlyProfitBeforeWithdraw.totalProfit -
+    yearlyProfitAfterWithdraw.totalProfit;
+
+  // Calculate deposit needed to match the original yearly profit
+  // Use a more precise calculation method
+  let depositNeeded = 0;
+  let step = 100;
+
+  while (step >= 1) {
+    while (true) {
+      const testCapital = capitalAfterWithdraw + depositNeeded + step;
+      const testProfit = calculateYearlyProfit(testCapital);
+
+      if (testProfit.totalProfit >= yearlyProfitBeforeWithdraw.totalProfit) {
+        break;
+      }
+
+      depositNeeded += step;
+
+      // Safety check
+      if (depositNeeded > amount * 2) {
+        break;
+      }
+    }
+
+    step = step / 10;
+  }
+
+  // Calculate days needed to deposit this amount
+  let daysToMeetUp = 0;
+  let signalingDay = 0;
+  let meetUpCapital = capitalAfterWithdraw;
+  let amountNeeded = depositNeeded;
+  let meetUpSignals = 0;
+
+  while (amountNeeded > 0) {
+    if (signalingDay === 0) {
+      // First signal
+      const firstSignalProfit = meetUpCapital * 0.01 * 0.88;
+      amountNeeded -= firstSignalProfit;
+      meetUpCapital += firstSignalProfit;
+      meetUpSignals++;
+
+      if (amountNeeded <= 0) break;
+
+      // Second signal
+      const secondSignalProfit = meetUpCapital * 0.01 * 0.88;
+      amountNeeded -= secondSignalProfit;
+      meetUpCapital += secondSignalProfit;
+      meetUpSignals++;
+
+      // Move to next day
+      daysToMeetUp++;
+    } else {
+      // Only second signal left for this day
+      const secondSignalProfit = meetUpCapital * 0.01 * 0.88;
+      amountNeeded -= secondSignalProfit;
+      meetUpCapital += secondSignalProfit;
+      meetUpSignals++;
+
+      // Move to next day
+      daysToMeetUp++;
+      signalingDay = 0;
+    }
+  }
+
+  // Now calculate standard recovery details
+  let amountToRecover = amount;
+  let daysNeeded = 0;
+  let dailyProfits = [];
+  signalingDay = 0; // Reset
+  let recoveryDate = new Date(withdrawDate);
+  let recoveryCapital = capitalAfterWithdraw;
+
+  // Adjust starting point based on the whenWithdraw parameter
+  if (whenWithdraw === "after-trade") {
+    // If withdrawal happens after trade, start from the next day
+    recoveryDate.setDate(recoveryDate.getDate() + 1);
+    signalingDay = 0; // Both signals for the next day
+  } else if (whenWithdraw === "inbetween-trade") {
+    // If withdrawal happens between trades, we've had one signal
+    signalingDay = 1; // Only the second signal for today
+  } else if (whenWithdraw === "before-trade") {
+    // If withdrawal happens before trade, no signals processed yet
+    signalingDay = 0; // Both signals for today
+  }
+
+  // Continue calculating until we recover the amount
+  while (amountToRecover > 0) {
+    if (signalingDay === 1) {
+      // Second signal only
+      const secondSignalProfit = recoveryCapital * 0.01 * 0.88;
+      amountToRecover -= secondSignalProfit;
+      dailyProfits.push(secondSignalProfit);
+      recoveryCapital += secondSignalProfit;
+
+      // Reset for next day
+      signalingDay = 0;
+      recoveryDate.setDate(recoveryDate.getDate() + 1);
+    } else {
+      // First signal
+      const firstSignalProfit = recoveryCapital * 0.01 * 0.88;
+      amountToRecover -= firstSignalProfit;
+      dailyProfits.push(firstSignalProfit);
+      recoveryCapital += firstSignalProfit;
+
+      if (amountToRecover <= 0) break;
+
+      // Second signal
+      const secondSignalProfit = recoveryCapital * 0.01 * 0.88;
+      amountToRecover -= secondSignalProfit;
+      dailyProfits.push(secondSignalProfit);
+      recoveryCapital += secondSignalProfit;
+
+      // Move to next day
+      recoveryDate.setDate(recoveryDate.getDate() + 1);
+      daysNeeded++;
+    }
+  }
+
+  // Calculate average daily profit
+  const averageProfitPerSignal =
+    dailyProfits.reduce((sum, profit) => sum + profit, 0) / dailyProfits.length;
+  const averageProfitPerDay = averageProfitPerSignal * 2; // Two signals per day
+
+  // Format the recovery date
+  const formattedRecoveryDate = recoveryDate.toISOString().split("T")[0];
+
+  return {
+    success: true,
+    daysNeeded,
+    numberOfSignals: dailyProfits.length,
+    estimatedRecoveryDate: formattedRecoveryDate,
+    averageProfitPerSignal: averageProfitPerSignal,
+    averageProfitPerDay: averageProfitPerDay,
+    finalCapital: recoveryCapital,
+    withdrawalAmount: amount,
+    dailyProfits: dailyProfits,
+
+    // Yearly profit comparison values - now correctly calculated
+    totalYearlyProfitBeforeWithdraw: yearlyProfitBeforeWithdraw.totalProfit,
+    totalYearlyProfitAfterWithdraw: yearlyProfitAfterWithdraw.totalProfit,
+    differenceBetweenProfit: profitDifference,
+    amountToDepositToMeetUp: depositNeeded,
+    daysToDepositToMeetUp: daysToMeetUp,
+  };
+};
+
 // Main component
 const Recovery = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
-  //   // Updated calculation function
-  //   const calculateRecoveryDays = (
-  //     amount,
-  //     withdrawalDate,
-  //     whenWithdraw,
-  //     currentCapital = 2500, // Current capital as of today
-  //     currentDate = new Date() // Today's date
-  //   ) => {
-  //     // Daily profit calculation function (remains the same)
-  //     const calculateProfit = (recentCapital) => {
-  //       const balanceBeforeTrade = recentCapital;
-  //       const tradingCapital = recentCapital * 0.01;
-  //       const profitFromTrade = tradingCapital * 0.88;
-  //       const balanceAfterTrade = balanceBeforeTrade + profitFromTrade;
-
-  //       return {
-  //         balanceBeforeTrade,
-  //         tradingCapital,
-  //         profitFromTrade,
-  //         balanceAfterTrade,
-  //       };
-  //     };
-
-  //     // Parse dates
-  //     const today = new Date(currentDate);
-  //     const withdrawDate = new Date(withdrawalDate);
-
-  //     // First, we need to calculate what the capital will be on the withdrawal date
-  //     let runningCapital = currentCapital;
-  //     let currentDay = new Date(today);
-
-  //     // Check if withdrawal date is in the future
-  //     if (withdrawDate > today) {
-  //       // Get current time
-  //       const currentTime = today.getHours() * 60 + today.getMinutes();
-  //       const cutoffTime = 14 * 60 + 30; // 14:30 in minutes
-
-  //       // Initialize signal counter based on current time
-  //       let signalingCount = 0;
-
-  //       // Process today's trades if needed
-  //       if (currentTime < cutoffTime) {
-  //         // Before 14:30, we still have two signals today
-  //         const result1 = calculateProfit(runningCapital);
-  //         runningCapital = result1.balanceAfterTrade;
-
-  //         const result2 = calculateProfit(runningCapital);
-  //         runningCapital = result2.balanceAfterTrade;
-  //       } else {
-  //         // After 14:30, we only have one signal left today
-  //         const result = calculateProfit(runningCapital);
-  //         runningCapital = result.balanceAfterTrade;
-  //       }
-
-  //       // Move to the next day
-  //       currentDay.setDate(currentDay.getDate() + 1);
-
-  //       // Calculate capital growth for each day until the withdrawal date
-  //       while (currentDay < withdrawDate) {
-  //         // Two signals per day
-  //         const result1 = calculateProfit(runningCapital);
-  //         runningCapital = result1.balanceAfterTrade;
-
-  //         const result2 = calculateProfit(runningCapital);
-  //         runningCapital = result2.balanceAfterTrade;
-
-  //         // Move to the next day
-  //         currentDay.setDate(currentDay.getDate() + 1);
-  //       }
-  //     }
-
-  //     // Now runningCapital is the capital at the time of withdrawal
-
-  //     // Adjust the withdrawal impact based on whenWithdraw
-  //     if (whenWithdraw === "after-trade") {
-  //       // If withdrawal happens after trade, capital is already calculated correctly
-  //       runningCapital -= amount;
-  //       // Start recovery from the next day
-  //       withdrawDate.setDate(withdrawDate.getDate() + 1);
-  //       signalingDay = 0; // Start with both signals on the next day
-  //     } else if (whenWithdraw === "inbetween-trade") {
-  //       // If withdrawal happens between trades, we've had one signal
-  //       runningCapital -= amount;
-  //       signalingDay = 1; // Only do second signal for this day
-  //     } else if (whenWithdraw === "before-trade") {
-  //       // If withdrawal happens before trade, no signals processed yet
-  //       runningCapital -= amount;
-  //       signalingDay = 0; // Do both signals for this day
-  //     }
-
-  //     // Calculate recovery (similar to original, but using our adjusted capital)
-  //     // ...Rest of the recovery calculation remains similar...
-
-  //     // Initialize recovery variables
-  //     let amountToRecover = amount;
-  //     let daysNeeded = 0;
-  //     let dailyProfits = [];
-  //     let signalingDay = 0; // Reset signal day based on withdrawal type
-  //     let recoveryDate = new Date(withdrawDate);
-
-  //     // Determine the starting point based on when the withdrawal happened
-  //     if (whenWithdraw === "after-trade") {
-  //       // If withdrawal happens after trade, start counting from the next day
-  //       recoveryDate.setDate(recoveryDate.getDate() + 1);
-  //       signalingDay = 0;
-  //     } else if (whenWithdraw === "inbetween-trade") {
-  //       // If withdrawal happens between trades, start with the second signal of the same day
-  //       signalingDay = 1;
-  //     } else if (whenWithdraw === "before-trade") {
-  //       // If withdrawal happens before trade, start counting from the same day
-  //       signalingDay = 0;
-  //     }
-
-  //     // Continue calculating until we recover the amount
-  //     while (amountToRecover > 0) {
-  //       // If we're in the middle of a day (after first signal)
-  //       if (signalingDay === 1) {
-  //         // Calculate profit from the second signal
-  //         const result = calculateProfit(runningCapital);
-  //         amountToRecover -= result.profitFromTrade;
-  //         dailyProfits.push(result.profitFromTrade);
-  //         runningCapital = result.balanceAfterTrade;
-
-  //         // Reset for the next day
-  //         signalingDay = 0;
-  //         // Move to the next day if this was the second signal
-  //         recoveryDate.setDate(recoveryDate.getDate() + 1);
-  //       } else {
-  //         // Calculate profit from the first signal
-  //         const result1 = calculateProfit(runningCapital);
-  //         amountToRecover -= result1.profitFromTrade;
-  //         dailyProfits.push(result1.profitFromTrade);
-  //         runningCapital = result1.balanceAfterTrade;
-
-  //         // If we've recovered the amount, break
-  //         if (amountToRecover <= 0) break;
-
-  //         // Calculate profit from the second signal
-  //         const result2 = calculateProfit(runningCapital);
-  //         amountToRecover -= result2.profitFromTrade;
-  //         dailyProfits.push(result2.profitFromTrade);
-  //         runningCapital = result2.balanceAfterTrade;
-
-  //         // Move to the next day
-  //         recoveryDate.setDate(recoveryDate.getDate() + 1);
-  //       }
-
-  //       // Increment days counter (counts full days, not signals)
-  //       daysNeeded++;
-  //     }
-
-  //     // Calculate average daily profit
-  //     const averageProfitPerSignal =
-  //       dailyProfits.reduce((sum, profit) => sum + profit, 0) /
-  //       dailyProfits.length;
-  //     const averageProfitPerDay = averageProfitPerSignal * 2; // Two signals per day
-
-  //     // Format the recovery date
-  //     const formattedRecoveryDate = recoveryDate.toISOString().split("T")[0];
-
-  //     return {
-  //       success: true,
-  //       daysNeeded,
-  //       numberOfSignals: dailyProfits.length,
-  //       estimatedRecoveryDate: formattedRecoveryDate,
-  //       averageProfitPerSignal: averageProfitPerSignal,
-  //       averageProfitPerDay: averageProfitPerDay,
-  //       finalCapital: runningCapital,
-  //       withdrawalAmount: amount,
-  //       dailyProfits: dailyProfits,
-  //     };
-  //   };
-
-  // Function to calculate recovery days
-  const calculateRecoveryDays = (
-    amount,
-    withdrawalDate,
-    whenWithdraw,
-    currentCapital = 2500, // Current capital as of today
-    currentDate = new Date()
-  ) => {
-    // Daily profit calculation function
-    const calculateProfit = (recentCapital) => {
-      const balanceBeforeTrade = recentCapital;
-      const tradingCapital = recentCapital * 0.01;
-      const profitFromTrade = tradingCapital * 0.88;
-      const balanceAfterTrade = balanceBeforeTrade + profitFromTrade;
-
-      return {
-        balanceBeforeTrade,
-        tradingCapital,
-        profitFromTrade,
-        balanceAfterTrade,
-      };
-    };
-
-    const today = new Date(currentDate);
-    const withdrawDate = new Date(withdrawalDate);
-
-    // First, we need to calculate what the capital will be on the withdrawal date
-    let runningCapital = currentCapital;
-    let currentDay = new Date(today);
-
-    // Check if withdrawal date is in the future
-    if (withdrawDate > today) {
-      // Get current time
-      const currentTime = today.getHours() * 60 + today.getMinutes();
-      const firstCutoffTime = 14 * 60 + 30; // 14:30 in minutes
-      const secondCutoffTime = 19 * 60 + 30; // 19:30 in minutes
-
-      // Process today's trades if needed
-      if (currentTime < firstCutoffTime) {
-        // Before 14:30, we still have two signals today
-        const result1 = calculateProfit(runningCapital);
-        runningCapital = result1.balanceAfterTrade;
-
-        const result2 = calculateProfit(runningCapital);
-        runningCapital = result2.balanceAfterTrade;
-      } else if (currentTime < secondCutoffTime) {
-        // Between 14:30 and 19:30, we only have one signal left today
-        const result = calculateProfit(runningCapital);
-        runningCapital = result.balanceAfterTrade;
-      }
-      // After 19:30, both signals for today are complete, so we start from the next day
-      // No additional calculation needed for today
-
-      // Move to the next day
-      currentDay.setDate(currentDay.getDate() + 1);
-
-      // Calculate capital growth for each day until the withdrawal date
-      while (currentDay < withdrawDate) {
-        // Two signals per day
-        const result1 = calculateProfit(runningCapital);
-        runningCapital = result1.balanceAfterTrade;
-
-        const result2 = calculateProfit(runningCapital);
-        runningCapital = result2.balanceAfterTrade;
-
-        // Move to the next day
-        currentDay.setDate(currentDay.getDate() + 1);
-      }
-    }
-
-    let amountToRecover = amount;
-    let daysNeeded = 0;
-    let dailyProfits = [];
-    let signalingDay = 0; // Reset signal day based on withdrawal type
-    let recoveryDate = new Date(withdrawDate);
-
-    // Determine the starting point based on when the withdrawal happened
-    if (whenWithdraw === "after-trade") {
-      // If withdrawal happens after trade, start counting from the next day
-      recoveryDate.setDate(recoveryDate.getDate() + 1);
-      signalingDay = 0;
-    } else if (whenWithdraw === "inbetween-trade") {
-      // If withdrawal happens between trades, start with the second signal of the same day
-      signalingDay = 1;
-    } else if (whenWithdraw === "before-trade") {
-      // If withdrawal happens before trade, start counting from the same day
-      signalingDay = 0;
-    }
-
-    // Continue calculating until we recover the amount
-    while (amountToRecover > 0) {
-      // If we're in the middle of a day (after first signal)
-      if (signalingDay === 1) {
-        // Calculate profit from the second signal
-        const result = calculateProfit(runningCapital);
-        amountToRecover -= result.profitFromTrade;
-        dailyProfits.push(result.profitFromTrade);
-        runningCapital = result.balanceAfterTrade;
-
-        // Reset for the next day
-        signalingDay = 0;
-        // Move to the next day if this was the second signal
-        recoveryDate.setDate(recoveryDate.getDate() + 1);
-      } else {
-        // Calculate profit from the first signal
-        const result1 = calculateProfit(runningCapital);
-        amountToRecover -= result1.profitFromTrade;
-        dailyProfits.push(result1.profitFromTrade);
-        runningCapital = result1.balanceAfterTrade;
-
-        // If we've recovered the amount, break
-        if (amountToRecover <= 0) break;
-
-        // Calculate profit from the second signal
-        const result2 = calculateProfit(runningCapital);
-        amountToRecover -= result2.profitFromTrade;
-        dailyProfits.push(result2.profitFromTrade);
-        runningCapital = result2.balanceAfterTrade;
-
-        // Move to the next day
-        recoveryDate.setDate(recoveryDate.getDate() + 1);
-      }
-
-      // Increment days counter (counts full days, not signals)
-      daysNeeded++;
-    }
-
-    // Calculate average daily profit
-    const averageProfitPerSignal =
-      dailyProfits.reduce((sum, profit) => sum + profit, 0) /
-      dailyProfits.length;
-    const averageProfitPerDay = averageProfitPerSignal * 2; // Two signals per day
-
-    // Format the recovery date
-    const formattedRecoveryDate = recoveryDate.toISOString().split("T")[0];
-
-    return {
-      success: true,
-      daysNeeded,
-      numberOfSignals: dailyProfits.length,
-      estimatedRecoveryDate: formattedRecoveryDate,
-      averageProfitPerSignal: averageProfitPerSignal,
-      averageProfitPerDay: averageProfitPerDay,
-      finalCapital: runningCapital,
-      withdrawalAmount: amount,
-      dailyProfits: dailyProfits,
-    };
-  };
 
   // Format currency amounts
   const formatAmount = (amount, currency = "USD") => {
@@ -471,19 +502,31 @@ const Recovery = () => {
     try {
       const withdrawResponse = await getExpenses();
 
-      const formattedExpenses = withdrawResponse.withdraw.map((e) => ({
-        dateOfWithdraw: e.date.split("T")[0],
-        amount: e.amount,
-        whenWithdrawHappened: e.whenWithdraw,
-        id: e._id,
-        // Calculate recovery info for each expense
-        recoveryInfo: calculateRecoveryDays(
-          e.amount,
-          e.date.split("T")[0],
-          e.whenWithdraw,
-          user.running_capital
-        ),
-      }));
+      const formattedExpenses = withdrawResponse.withdraw.map((e) => {
+        // Determine signal status based on whenWithdraw
+        let signalStatus = 0;
+        if (e.whenWithdraw === "inbetween-trade") {
+          signalStatus = 1;
+        } else if (e.whenWithdraw === "after-trade") {
+          signalStatus = 2;
+        }
+
+        return {
+          dateOfWithdraw: e.date.split("T")[0],
+          amount: e.amount,
+          whenWithdrawHappened: e.whenWithdraw,
+          id: e._id,
+          // Calculate recovery info with signalStatus
+          recoveryInfo: calculateRecoveryDays(
+            e.amount,
+            e.date.split("T")[0],
+            e.whenWithdraw,
+            user.running_capital,
+            new Date(),
+            signalStatus
+          ),
+        };
+      });
 
       setExpenses(formattedExpenses);
     } catch (error) {
@@ -514,9 +557,6 @@ const Recovery = () => {
 
   return (
     <Container>
-      {/* <Header>
-      </Header> */}
-
       <StatsContainer>
         <StatCard>
           <StatTitle>Total Withdrawals</StatTitle>
@@ -592,6 +632,52 @@ const Recovery = () => {
                           )}
                         </InfoValue>
                       </InfoRow>
+
+                      <YearlyProfitSection>
+                        <YearlyProfitTitle>
+                          Yearly Profit Impact
+                        </YearlyProfitTitle>
+                        <InfoRow>
+                          <InfoLabel>Before Withdrawal:</InfoLabel>
+                          <InfoValue>
+                            {formatAmount(
+                              expense.recoveryInfo
+                                .totalYearlyProfitBeforeWithdraw
+                            )}
+                          </InfoValue>
+                        </InfoRow>
+                        <InfoRow>
+                          <InfoLabel>After Withdrawal:</InfoLabel>
+                          <InfoValue>
+                            {formatAmount(
+                              expense.recoveryInfo
+                                .totalYearlyProfitAfterWithdraw
+                            )}
+                          </InfoValue>
+                        </InfoRow>
+                        <InfoRow>
+                          <InfoLabel>Difference:</InfoLabel>
+                          <InfoValue>
+                            {formatAmount(
+                              expense.recoveryInfo.differenceBetweenProfit
+                            )}
+                          </InfoValue>
+                        </InfoRow>
+                        <InfoRow>
+                          <InfoLabel>Amount to Match:</InfoLabel>
+                          <InfoValue>
+                            {formatAmount(
+                              expense.recoveryInfo.amountToDepositToMeetUp
+                            )}
+                          </InfoValue>
+                        </InfoRow>
+                        <InfoRow>
+                          <InfoLabel>Days to Match:</InfoLabel>
+                          <InfoValue>
+                            {expense.recoveryInfo.daysToDepositToMeetUp}
+                          </InfoValue>
+                        </InfoRow>
+                      </YearlyProfitSection>
                     </RecoveryInfo>
                   </Td>
                 </tr>

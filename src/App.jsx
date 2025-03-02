@@ -6,6 +6,7 @@ import WeeklyDetails from "./pages/WeeklyDetails";
 import Withdraw from "./pages/Withdraw";
 import Deposit from "./pages/Deposit";
 import Login from "./pages/Login";
+import WeeklyProfit from "./pages/WeeklyProfit";
 
 const Home = () => <div>Home</div>;
 
@@ -32,7 +33,7 @@ const App = () => {
           path="/weekly"
           element={
             <MainLayout>
-              <WeeklyDetails />
+              <WeeklyProfit />
             </MainLayout>
           }
         />

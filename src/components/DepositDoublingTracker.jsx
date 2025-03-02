@@ -632,12 +632,10 @@ const DepositDoublingTracker = () => {
                               <IconWrapper color="#f472b6">
                                 <ArrowUpCircle size={16} />
                               </IconWrapper>
-                              {showProjections
-                                ? result.progressPercent
-                                : calculateCurrentProgress(
-                                    deposits[index].dateOfDeposit,
-                                    result.estimatedDate
-                                  )}
+                              {calculateCurrentProgress(
+                                deposits[index].dateOfDeposit,
+                                result.estimatedDate
+                              )}
                               %
                             </DetailValue>
                           </DetailItem>
